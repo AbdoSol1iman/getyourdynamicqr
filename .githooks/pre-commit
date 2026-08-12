@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Pre-commit guard: refuses to commit files that could leak secrets.
+#
+# Enable once (per clone) with:
+#   git config core.hooksPath .githooks
+#
+# Rules:
+#   - any file whose name starts with ".env" (e.g. .env, .env.local, .env.prod)
+#     EXCEPT the documented .env.example template, which is safe to commit
+#   - common credential / private-key file names
+#
+# This is a safety net only; keep real secrets inside .env / hosted env vars.
+
+set -euo pipefail
+
+staged=$(git diff --cached --name-only)
+
+# Any file whose basename starts with ".env" is suspect — except the documented
+# .env.example template, which is safe to commit.
+blocked=""
+while IFS= read -r f; do
+  base=$(basename -- "$f")
+  case "$base" in
+    .env.example) ;;  # documented template
+    .env*) blocked="${blocked}
+${f}" ;;
+  esac
+done <<< "$staged"
+
+# Private keys, credential bundles, and key stores.
+blocked_keyfiles=$(printf '%s\n' "$staged" | grep -iE '(^|/)[^/]*\.(pem|p12|pfx|key|jks)$|(^|/)[^/]*(credentials|secret(s)?)[^/]*\.(json|yaml|yml|txt)$' || true)
+
+if [ -n "$blocked" ] || [ -n "$blocked_keyfiles" ]; then
+  echo "✗ Commit blocked — these files look like secrets and are not ignored:" >&2
+  printf '  %s\n' $blocked $blocked_keyfiles >&2
+  echo "  Add them to .gitignore and remove from the index, e.g.:" >&2
+  echo "    echo '<file>' >> .gitignore" >&2
+  echo "    git rm --cached <file>" >&2
+  exit 1
+fi
+
+exit 0
