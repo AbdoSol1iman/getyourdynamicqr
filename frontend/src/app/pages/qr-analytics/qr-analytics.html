@@ -1,13 +1,25 @@
 <div class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <a class="link" routerLink="/dashboard">Back to dashboard</a>
 </div>
 
 <main class="container">
   @if (loading()) {
-    <p class="muted">Loading...</p>
+    <div class="loading-row" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading analytics...
+    </div>
   } @else if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   } @else if (data()) {
     <h1>Analytics</h1>
 
@@ -26,7 +38,7 @@
       </div>
     </div>
 
-    <h2>Scan activity &mdash; last 14 days</h2>
+    <h2 class="section-head">Scan activity &mdash; last 14 days</h2>
     <div class="barchart">
       @for (day of data()!.scansByDate; track day.date) {
         <div class="bar-row">
@@ -45,16 +57,18 @@
         @if (data()!.devices.length === 0) {
           <p class="muted">No data yet.</p>
         } @else {
-          <table>
-            <tbody>
-              @for (item of data()!.devices; track item.name) {
-                <tr>
-                  <td class="capitalize">{{ item.name }}</td>
-                  <td class="count">{{ item.count }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                @for (item of data()!.devices; track item.name) {
+                  <tr>
+                    <td class="capitalize">{{ item.name }}</td>
+                    <td class="count">{{ item.count }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </div>
 
@@ -63,16 +77,18 @@
         @if (data()!.operatingSystems.length === 0) {
           <p class="muted">No data yet.</p>
         } @else {
-          <table>
-            <tbody>
-              @for (item of data()!.operatingSystems; track item.name) {
-                <tr>
-                  <td>{{ item.name }}</td>
-                  <td class="count">{{ item.count }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                @for (item of data()!.operatingSystems; track item.name) {
+                  <tr>
+                    <td>{{ item.name }}</td>
+                    <td class="count">{{ item.count }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </div>
 
@@ -81,48 +97,52 @@
         @if (data()!.browsers.length === 0) {
           <p class="muted">No data yet.</p>
         } @else {
-          <table>
-            <tbody>
-              @for (item of data()!.browsers; track item.name) {
-                <tr>
-                  <td>{{ item.name }}</td>
-                  <td class="count">{{ item.count }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                @for (item of data()!.browsers; track item.name) {
+                  <tr>
+                    <td>{{ item.name }}</td>
+                    <td class="count">{{ item.count }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </div>
     </div>
 
-    <h2>Recent scans</h2>
+    <h2 class="section-head">Recent scans</h2>
     @if (data()!.recentScans.length === 0) {
       <p class="muted">No scans yet.</p>
     } @else {
-      <table>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>IP</th>
-            <th>Device</th>
-            <th>OS</th>
-            <th>Browser</th>
-            <th>User agent</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (scan of data()!.recentScans; track scan.id) {
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td>{{ scan.scannedAt | date: 'medium' }}</td>
-              <td>{{ scan.ipAddress || '—' }}</td>
-              <td class="capitalize">{{ scan.deviceType || '—' }}</td>
-              <td>{{ scan.os || '—' }}</td>
-              <td>{{ scan.browser || '—' }}</td>
-              <td class="truncate" title="{{ scan.userAgent || '' }}">{{ scan.userAgent || '—' }}</td>
+              <th>Time</th>
+              <th>IP</th>
+              <th>Device</th>
+              <th>OS</th>
+              <th>Browser</th>
+              <th>User agent</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (scan of data()!.recentScans; track scan.id) {
+              <tr>
+                <td>{{ scan.scannedAt | date: 'medium' }}</td>
+                <td>{{ scan.ipAddress || '—' }}</td>
+                <td class="capitalize">{{ scan.deviceType || '—' }}</td>
+                <td>{{ scan.os || '—' }}</td>
+                <td>{{ scan.browser || '—' }}</td>
+                <td class="truncate" title="{{ scan.userAgent || '' }}">{{ scan.userAgent || '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     }
   }
 </main>

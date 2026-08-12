@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { API_URL } from './api-url';
 
 export interface User {
@@ -14,6 +14,11 @@ export interface AuthResponse {
   user: User;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
 const TOKEN_KEY = 'dqr_token';
 const USER_KEY = 'dqr_user';
 
@@ -25,18 +30,23 @@ export class AuthService {
   readonly currentUser = signal<User | null>(this.getStoredUser());
 
   register(email: string, password: string): Observable<User> {
-    return this.http.post<User>(`${API_URL}/api/auth/register`, { email, password });
+    return this.http
+      .post<ApiResponse<User>>(`${API_URL}/api/auth/register`, { email, password })
+      .pipe(map((res) => res.data));
   }
 
   login(email: string, password: string): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${API_URL}/api/auth/login`, { email, password }).pipe(
-      tap((res) => {
-        localStorage.setItem(TOKEN_KEY, res.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-        this.isAuthenticated.set(true);
-        this.currentUser.set(res.user);
-      })
-    );
+    return this.http
+      .post<ApiResponse<AuthResponse>>(`${API_URL}/api/auth/login`, { email, password })
+      .pipe(
+        map((res) => res.data),
+        tap((data) => {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+          this.isAuthenticated.set(true);
+          this.currentUser.set(data.user);
+        })
+      );
   }
 
   logout(): void {

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { API_URL } from './api-url';
 
 export interface QrCode {
@@ -56,27 +56,40 @@ export interface QrAnalytics {
   recentScans: ScanEvent[];
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
 @Injectable({ providedIn: 'root' })
 export class QrService {
   private http = inject(HttpClient);
 
   create(title: string, destinationUrl: string, domainId: string | null = null): Observable<QrCode> {
-    return this.http.post<QrCode>(`${API_URL}/api/qr`, { title, destinationUrl, domainId });
+    return this.http
+      .post<ApiResponse<QrCode>>(`${API_URL}/api/qr`, { title, destinationUrl, domainId })
+      .pipe(map((res) => res.data));
   }
 
   list(): Observable<QrCode[]> {
-    return this.http.get<QrCode[]>(`${API_URL}/api/qr`);
+    return this.http
+      .get<ApiResponse<QrCode[]>>(`${API_URL}/api/qr`)
+      .pipe(map((res) => res.data));
   }
 
   get(id: string): Observable<QrCode> {
-    return this.http.get<QrCode>(`${API_URL}/api/qr/${id}`);
+    return this.http
+      .get<ApiResponse<QrCode>>(`${API_URL}/api/qr/${id}`)
+      .pipe(map((res) => res.data));
   }
 
   update(
     id: string,
     data: Partial<Pick<QrCode, 'title' | 'destinationUrl' | 'isActive'> & { domainId: string | null }>
   ): Observable<QrCode> {
-    return this.http.patch<QrCode>(`${API_URL}/api/qr/${id}`, data);
+    return this.http
+      .patch<ApiResponse<QrCode>>(`${API_URL}/api/qr/${id}`, data)
+      .pipe(map((res) => res.data));
   }
 
   remove(id: string): Observable<unknown> {
@@ -84,6 +97,8 @@ export class QrService {
   }
 
   analytics(id: string): Observable<QrAnalytics> {
-    return this.http.get<QrAnalytics>(`${API_URL}/api/qr/${id}/analytics`);
+    return this.http
+      .get<ApiResponse<QrAnalytics>>(`${API_URL}/api/qr/${id}/analytics`)
+      .pipe(map((res) => res.data));
   }
 }

@@ -1,90 +1,38 @@
 :host {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: grid;
+  place-items: center;
   min-height: 100vh;
-  background: #f5f6fa;
+  padding: var(--space-md);
+  background: var(--color-muted);
 }
 
 .auth-card {
-  width: 360px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 32px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  width: 400px;
+  max-width: 100%;
+  padding: var(--space-xl);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-h1 {
-  margin: 0 0 4px;
-  font-size: 24px;
-  color: #1a1a2e;
+.auth-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
-.subtitle {
-  margin: 0 0 24px;
-  color: #777;
-  font-size: 14px;
-}
-
-label {
-  display: block;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  color: #444;
-}
-
-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9dbe4;
-  border-radius: 6px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-input:focus {
-  outline: none;
-  border-color: #3a86ff;
-}
-
-.field-error {
-  color: #d93025;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.form-error {
-  color: #d93025;
-  font-size: 13px;
-  margin: 12px 0 0;
-}
-
-button {
-  width: 100%;
-  margin-top: 20px;
-  padding: 12px;
-  background: #3a86ff;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #a9c6f7;
-  cursor: not-allowed;
+.auth-head h1 {
+  font-size: 22px;
 }
 
 .switch {
-  margin-top: 18px;
+  margin: var(--space-lg) 0 0;
   text-align: center;
+  color: var(--color-text-muted);
   font-size: 14px;
-  color: #666;
 }
 
 .switch a {
-  color: #3a86ff;
-  text-decoration: none;
+  font-weight: 600;
 }

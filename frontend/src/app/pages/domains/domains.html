@@ -1,68 +1,87 @@
 <div class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <a class="link" routerLink="/dashboard">Back to dashboard</a>
 </div>
 
 <main class="container">
-  <h1>Custom domains</h1>
-  <p class="subtitle">
-    Print your QR codes with your own domain instead of ours.
-    Example: <code>qr.myrestaurant.com/q/aX7bK9</code>
-  </p>
+  <div class="page-head">
+    <div>
+      <h1>Custom domains</h1>
+      <p class="subtitle">
+        Print your QR codes with your own domain instead of ours.
+        Example: <code>qr.myrestaurant.com/q/aX7bK9</code>
+      </p>
+    </div>
+  </div>
 
   <div class="add-box">
     <input
       class="add-input"
       [(ngModel)]="newDomain"
       placeholder="qr.myrestaurant.com"
+      aria-label="New domain"
       (keyup.enter)="addDomain()"
     />
     <button class="btn btn-primary" (click)="addDomain()">Add domain</button>
   </div>
 
   @if (addError) {
-    <p class="error">{{ addError }}</p>
+    <p class="error" role="alert">{{ addError }}</p>
   }
 
-  <h2>Your domains</h2>
+  <h2 class="section-head">Your domains</h2>
 
   @if (loading()) {
-    <p class="muted">Loading...</p>
+    <div class="loading-row" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading domains...
+    </div>
   } @else if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   } @else if (domains().length === 0) {
     <p class="muted">
       No domains yet. Add one above (DNS will point it at our server) and then
       pick it when creating a QR code.
     </p>
   } @else {
-    <table>
-      <thead>
-        <tr>
-          <th>Domain</th>
-          <th>Status</th>
-          <th>Added</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (domain of domains(); track domain.id) {
+    <div class="table-wrap">
+      <table>
+        <thead>
           <tr>
-            <td>{{ domain.domain }}</td>
-            <td>
-              @if (domain.isVerified) {
-                <span class="badge">Verified</span>
-              } @else {
-                <span class="badge pending">Pending</span>
-              }
-            </td>
-            <td>{{ domain.createdAt | date: 'mediumDate' }}</td>
-            <td class="right">
-              <button class="btn btn-danger" (click)="remove(domain)">Remove</button>
-            </td>
+            <th>Domain</th>
+            <th>Status</th>
+            <th>Added</th>
+            <th></th>
           </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (domain of domains(); track domain.id) {
+            <tr>
+              <td><code>{{ domain.domain }}</code></td>
+              <td>
+                @if (domain.isVerified) {
+                  <span class="badge">Verified</span>
+                } @else {
+                  <span class="badge pending">Pending</span>
+                }
+              </td>
+              <td>{{ domain.createdAt | date: 'mediumDate' }}</td>
+              <td class="right">
+                <button class="btn btn-danger" (click)="remove(domain)">Remove</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   }
 </main>

@@ -1,144 +1,43 @@
 :host {
   display: block;
   min-height: 100vh;
-  background: #f5f6fa;
-}
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 32px;
-  background: #1a1a2e;
-  color: #fff;
-}
-
-.brand {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.link {
-  color: #fff;
-  text-decoration: none;
-  font-size: 14px;
+  background: var(--color-background);
 }
 
 .container {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 40px 24px;
+  max-width: 760px;
 }
 
-h1,
-h2 {
-  color: #1a1a2e;
-}
-
-.subtitle {
-  color: #666;
-}
-
-code {
-  background: #eef0f5;
-  padding: 2px 6px;
-  border-radius: 4px;
+.section-head {
+  margin: var(--space-xl) 0 var(--space-md);
 }
 
 .add-box {
   display: flex;
-  gap: 10px;
-  margin: 20px 0 8px;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0 var(--space-sm);
 }
 
 .add-input {
   flex: 1;
-  padding: 10px 12px;
-  border: 1px solid #d5d9e0;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-}
-
-th,
-td {
-  text-align: left;
-  padding: 12px 14px;
-  border-bottom: 1px solid #eef0f5;
-  font-size: 14px;
-}
-
-th {
-  background: #fafbfd;
-  color: #555;
-  font-weight: 600;
 }
 
 td.right {
   text-align: right;
 }
 
-.badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  background: #e6f4ea;
-  color: #137333;
+td code {
+  background: none;
+  padding: 0;
+  font-size: 0.95em;
 }
 
-.badge.pending {
-  background: #fef7e0;
-  color: #b06000;
-}
+@media (max-width: 560px) {
+  .add-box {
+    flex-direction: column;
+  }
 
-.btn {
-  padding: 8px 14px;
-  border: 1px solid #d5d9e0;
-  border-radius: 6px;
-  background: #fff;
-  color: #1a1a2e;
-  font-size: 14px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary {
-  background: #3a86ff;
-  border-color: #3a86ff;
-  color: #fff;
-}
-
-.btn-danger {
-  background: #fff;
-  border-color: #f1b8b5;
-  color: #d93025;
-}
-
-.error {
-  color: #d93025;
-  background: #fce8e6;
-  padding: 10px 14px;
-  border-radius: 6px;
-  margin: 12px 0;
-}
-
-.muted {
-  color: #777;
+  .add-box .btn {
+    width: 100%;
+  }
 }

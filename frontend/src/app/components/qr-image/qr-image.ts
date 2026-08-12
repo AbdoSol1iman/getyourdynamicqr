@@ -1,5 +1,4 @@
 import { Component, effect, input } from '@angular/core';
-import QRCode from 'qrcode';
 
 @Component({
   selector: 'app-qr-image',
@@ -17,7 +16,10 @@ export class QrImageComponent {
     effect(async () => {
       const value = this.text();
       if (!value) return;
-      this.imageUrl = await QRCode.toDataURL(value, {
+      // Dynamic import of the browser entry point avoids bundling the CJS
+      // server build of `qrcode`, which breaks under Angular's bundling.
+      const { toDataURL } = await import('qrcode/lib/browser');
+      this.imageUrl = await toDataURL(value, {
         width: this.size(),
         margin: 1,
       });

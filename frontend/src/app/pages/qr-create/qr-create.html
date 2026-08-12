@@ -1,24 +1,37 @@
 <div class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <a class="link" routerLink="/dashboard">Back to dashboard</a>
 </div>
 
 <main class="container">
   @if (!created) {
-    <h1>Create QR code</h1>
-    <p class="subtitle">The QR will point to our server and redirect to your destination.</p>
+    <div class="page-head">
+      <div>
+        <h1>Create QR code</h1>
+        <p class="subtitle">The QR will point to our server and redirect to your destination.</p>
+      </div>
+    </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <form class="card form-card" [formGroup]="form" (ngSubmit)="onSubmit()">
       <label for="title">Title</label>
-      <input id="title" formControlName="title" placeholder="My Restaurant" />
+      <input id="title" formControlName="title" placeholder="My Restaurant" autocomplete="off" />
       @if (form.controls.title.touched && form.controls.title.invalid) {
-        <div class="field-error">Title is required (max 100 characters).</div>
+        <div class="field-error" role="alert">Title is required (max 100 characters).</div>
       }
 
       <label for="destinationUrl">Destination URL</label>
-      <input id="destinationUrl" formControlName="destinationUrl" placeholder="https://example.com" />
+      <input id="destinationUrl" formControlName="destinationUrl" placeholder="https://example.com" inputmode="url" />
       @if (form.controls.destinationUrl.touched && form.controls.destinationUrl.invalid) {
-        <div class="field-error">Enter a valid http(s) URL.</div>
+        <div class="field-error" role="alert">Enter a valid http(s) URL.</div>
       }
 
       @if (domains().length > 0) {
@@ -33,20 +46,23 @@
       }
 
       @if (error) {
-        <p class="form-error">{{ error }}</p>
+        <p class="form-error" role="alert">{{ error }}</p>
       }
 
-      <button type="submit" [disabled]="form.invalid">Generate QR code</button>
+      <button class="btn btn-primary btn-block" type="submit" [disabled]="form.invalid">Generate QR code</button>
     </form>
   } @else {
-    <h1>QR code created!</h1>
     <div class="result">
-      <app-qr-image [text]="created.redirectUrl!" [size]="220" />
-      <p class="dest">Redirects to: {{ created.destinationUrl }}</p>
-      <p class="meta">Short code: {{ created.shortCode }}</p>
-      <p class="meta">QR URL: {{ created.redirectUrl }}</p>
+      <h1>QR code created!</h1>
+      <div class="qr">
+        <app-qr-image [text]="created.redirectUrl!" [size]="220" />
+      </div>
+      <p class="meta-title">Redirects to</p>
+      <p class="dest">{{ created.destinationUrl }}</p>
+      <p class="meta">Short code: <code>{{ created.shortCode }}</code></p>
+      <p class="meta qr-url">QR URL: <code>{{ created.redirectUrl }}</code></p>
       <div class="actions">
-        <button class="btn" (click)="createAnother()">Create another</button>
+        <button class="btn btn-secondary" (click)="createAnother()">Create another</button>
         <a class="btn btn-primary" routerLink="/dashboard">Go to dashboard</a>
       </div>
     </div>

@@ -1,5 +1,14 @@
 <header class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <div class="user">
     <span class="email">{{ email }}</span>
     <button class="link" (click)="logout()">Log out</button>
@@ -7,25 +16,50 @@
 </header>
 
 <main class="container">
-  <div class="header-row">
+  <div class="page-head">
     <h1>My QR codes</h1>
     <div class="header-actions">
       <a class="btn" routerLink="/plans">Plan: {{ planLabel() || '…' }}</a>
       <a class="btn" routerLink="/domains">Custom domains</a>
-      <a class="btn btn-primary" routerLink="/qr/create">+ New QR code</a>
+      <a class="btn btn-accent" routerLink="/qr/create">New QR code</a>
     </div>
   </div>
 
   @if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   }
 
   @if (loading()) {
-    <p class="muted">Loading...</p>
+    <div class="grid" aria-label="Loading QR codes">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="card">
+          <div class="card-top">
+            <div class="skeleton" style="height: 16px; width: 60%"></div>
+            <div class="skeleton" style="height: 20px; width: 56px; border-radius: 999px"></div>
+          </div>
+          <div class="skeleton skeleton-qr" role="presentation"></div>
+          <div class="skeleton" style="height: 12px; margin-bottom: var(--space-sm)"></div>
+          <div class="skeleton" style="height: 12px; width: 70%"></div>
+          <div class="actions" style="margin-top: var(--space-md)">
+            <div class="skeleton" style="height: 34px; width: 120px"></div>
+            <div class="skeleton" style="height: 34px; width: 90px"></div>
+          </div>
+        </div>
+      }
+    </div>
   } @else if (qrs().length === 0) {
     <div class="empty">
+      <span class="empty-icon" aria-hidden="true">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+          <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+          <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+          <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+          <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+        </svg>
+      </span>
       <p>You don't have any QR codes yet.</p>
-      <a class="btn btn-primary" routerLink="/qr/create">Create your first QR code</a>
+      <a class="btn btn-accent" routerLink="/qr/create">Create your first QR code</a>
     </div>
   } @else {
     <div class="grid">
@@ -38,15 +72,29 @@
             </span>
           </div>
 
-          <app-qr-image [text]="qr.redirectUrl" [size]="160" />
+          <div class="qr">
+            <app-qr-image [text]="qr.redirectUrl" [size]="150" />
+          </div>
 
-          <p class="dest">{{ qr.destinationUrl }}</p>
-          <p class="meta">Code: {{ qr.shortCode }}</p>
-          <p class="meta">Scans: {{ qr.scanCount ?? 0 }}</p>
-          <p class="meta">Created: {{ qr.createdAt | date: 'mediumDate' }}</p>
+          <p class="dest" [title]="qr.destinationUrl">{{ qr.destinationUrl }}</p>
+
+          <div class="card-meta">
+            <div class="meta-row">
+              <span>Code</span>
+              <code>{{ qr.shortCode }}</code>
+            </div>
+            <div class="meta-row">
+              <span>Scans</span>
+              <span class="num">{{ qr.scanCount ?? 0 }}</span>
+            </div>
+            <div class="meta-row">
+              <span>Created</span>
+              <span>{{ qr.createdAt | date: 'mediumDate' }}</span>
+            </div>
+          </div>
 
           <div class="actions">
-            <a class="btn" [routerLink]="['/qr', qr.id, 'edit']">Edit</a>
+            <a class="btn btn-secondary" [routerLink]="['/qr', qr.id, 'edit']">Edit</a>
             <a class="btn" [routerLink]="['/qr', qr.id, 'analytics']">Analytics</a>
             <button class="btn" (click)="toggle(qr)">
               {{ qr.isActive ? 'Disable' : 'Enable' }}

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -21,17 +21,24 @@ export class Register {
 
   error = '';
   success = false;
+  readonly submitting = signal(false);
 
   onSubmit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.submitting()) return;
 
+    this.error = '';
+    this.submitting.set(true);
     const { email, password } = this.form.getRawValue();
     this.auth.register(email, password).subscribe({
       next: () => {
+        this.submitting.set(false);
         this.success = true;
         setTimeout(() => this.router.navigate(['/login']), 1200);
       },
-      error: (err) => (this.error = err?.error?.message ?? 'Registration failed'),
+      error: (err) => {
+        this.submitting.set(false);
+        this.error = err?.error?.message ?? 'Registration failed';
+      },
     });
   }
 }

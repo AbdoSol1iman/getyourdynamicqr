@@ -1,23 +1,38 @@
 <div class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <a class="link" routerLink="/dashboard">Back to dashboard</a>
 </div>
 
 <main class="container">
-  <h1>Plans</h1>
-
   @if (loading()) {
-    <p class="muted">Loading...</p>
+    <div class="loading-row" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading plans...
+    </div>
   } @else if (error()) {
-    <p class="error">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   } @else if (state()) {
-    <p class="subtitle">
-      You're on the <strong>{{ state()!.current.label }}</strong> plan.
-      Upgrade with InstaPay to unlock more QR codes and features.
-    </p>
+    <div class="page-head">
+      <div>
+        <h1>Plans</h1>
+        <p class="subtitle">
+          You're on the <strong>{{ state()!.current.label }}</strong> plan.
+          Upgrade with InstaPay to unlock more QR codes and features.
+        </p>
+      </div>
+    </div>
 
     @if (paidMessage) {
-      <p class="success">{{ paidMessage }}</p>
+      <p class="success" role="status">{{ paidMessage }}</p>
     }
 
     <div class="plans">
@@ -28,7 +43,7 @@
             @if (plan.monthlyPriceEGP === 0) {
               Free
             } @else {
-              EGP {{ plan.monthlyPriceEGP }}<span class="per">/month</span>
+              <span class="num">EGP {{ plan.monthlyPriceEGP }}</span><span class="per">/month</span>
             }
           </div>
           <ul>
@@ -41,7 +56,7 @@
           } @else if (plan.monthlyPriceEGP === 0) {
             <button class="btn" disabled>Free</button>
           } @else {
-            <button class="btn btn-primary" (click)="selectPlan(plan.planType)">
+            <button class="btn btn-accent" (click)="selectPlan(plan.planType)">
               Pay with InstaPay
             </button>
           }
@@ -50,7 +65,7 @@
     </div>
 
     @if (payError) {
-      <p class="error">{{ payError }}</p>
+      <p class="error" role="alert">{{ payError }}</p>
     }
 
     @if (payment()) {
@@ -68,17 +83,17 @@
           <div class="qr-box">
             <app-qr-image [text]="payment()!.payText" [size]="170" />
           </div>
-          <ul>
-            <li>Amount: <strong>EGP {{ payment()!.amountEGP }}</strong></li>
+          <ul class="pay-list">
+            <li>Amount: <strong class="num">EGP {{ payment()!.amountEGP }}</strong></li>
             <li>InstaPay wallet: <strong>{{ payment()!.wallet || '—' }}</strong></li>
-            <li>Your reference: <strong>{{ payment()!.reference }}</strong></li>
+            <li>Your reference: <strong class="num">{{ payment()!.reference }}</strong></li>
           </ul>
         </div>
 
         <ol class="steps">
           <li>Open your bank&apos;s app and go to <strong>InstaPay</strong>.</li>
-          <li>Pay <strong>EGP {{ payment()!.amountEGP }}</strong> to the wallet above.</li>
-          <li>Enter the reference <strong>{{ payment()!.reference }}</strong> as the payment note.</li>
+          <li>Pay <strong class="num">EGP {{ payment()!.amountEGP }}</strong> to the wallet above.</li>
+          <li>Enter the reference <strong class="num">{{ payment()!.reference }}</strong> as the payment note.</li>
           <li>Copy the transaction reference from your app and confirm below.</li>
         </ol>
 
@@ -91,7 +106,7 @@
         />
 
         <div class="row">
-          <button class="btn" (click)="cancelPayment()">Cancel</button>
+          <button class="btn btn-secondary" (click)="cancelPayment()">Cancel</button>
           <button
             class="btn btn-primary"
             [disabled]="paying || !instapayRef.trim()"

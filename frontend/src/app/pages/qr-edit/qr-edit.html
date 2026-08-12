@@ -1,36 +1,52 @@
 <div class="topbar">
-  <div class="brand">Dynamic QR</div>
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
+      <rect x="13.5" y="13.5" width="3.5" height="3.5" rx="1" fill="currentColor" />
+      <rect x="18" y="18" width="3.5" height="3.5" rx="1" fill="currentColor" />
+    </svg>
+    Dynamic QR
+  </div>
   <a class="link" routerLink="/dashboard">Back to dashboard</a>
 </div>
 
 <main class="container">
   @if (loading()) {
-    <p class="muted">Loading...</p>
+    <div class="loading-row" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading QR code...
+    </div>
   } @else if (error() && !original) {
-    <p class="error">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   } @else if (original) {
-    <h1>Edit QR code</h1>
-    <p class="note">
-      Changing the destination will <strong>not</strong> change the short code.
-      Your printed QR stays valid. Current code: <strong>{{ original.shortCode }}</strong>
-    </p>
+    <div class="page-head">
+      <div>
+        <h1>Edit QR code</h1>
+        <p class="note">
+          Changing the destination will <strong>not</strong> change the short code.
+          Your printed QR stays valid. Current code: <code>{{ original.shortCode }}</code>
+        </p>
+      </div>
+    </div>
 
     <div class="layout">
-      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <form class="card form-card" [formGroup]="form" (ngSubmit)="onSubmit()">
         <label for="title">Title</label>
-        <input id="title" formControlName="title" />
+        <input id="title" formControlName="title" autocomplete="off" />
         @if (form.controls.title.touched && form.controls.title.invalid) {
-          <div class="field-error">Title is required (max 100 characters).</div>
+          <div class="field-error" role="alert">Title is required (max 100 characters).</div>
         }
 
         <label for="destinationUrl">Destination URL</label>
-        <input id="destinationUrl" formControlName="destinationUrl" />
+        <input id="destinationUrl" formControlName="destinationUrl" inputmode="url" />
         @if (form.controls.destinationUrl.touched && form.controls.destinationUrl.invalid) {
-          <div class="field-error">Enter a valid http(s) URL.</div>
+          <div class="field-error" role="alert">Enter a valid http(s) URL.</div>
         }
 
         <label class="check">
-          <input type="checkbox" formControlName="isActive" />
+          <input id="isActive" type="checkbox" formControlName="isActive" />
           Active (allowed to redirect)
         </label>
 
@@ -46,17 +62,19 @@
         }
 
         @if (error()) {
-          <p class="form-error">{{ error() }}</p>
+          <p class="form-error" role="alert">{{ error() }}</p>
         }
 
         <div class="actions">
-          <button type="submit" [disabled]="form.invalid">Save changes</button>
-          <a class="btn" routerLink="/dashboard">Cancel</a>
+          <button class="btn btn-primary" type="submit" [disabled]="form.invalid">Save changes</button>
+          <a class="btn btn-secondary" routerLink="/dashboard">Cancel</a>
         </div>
       </form>
 
       <div class="preview">
-        <app-qr-image [text]="original.redirectUrl" [size]="200" />
+        <div class="qr-box">
+          <app-qr-image [text]="original.redirectUrl" [size]="200" />
+        </div>
         <p class="meta">This QR stays the same.</p>
       </div>
     </div>
