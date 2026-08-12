@@ -69,9 +69,7 @@ const PORT = process.env.PORT || 3000;
 
 export default app;
 
-// Only start listening when run directly (not when imported by the test
-// suite, which starts the app on an ephemeral port itself).
-if (process.env.NODE_ENV !== "test") {
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`Dynamic QR API listening on http://localhost:${PORT}`);
   });
