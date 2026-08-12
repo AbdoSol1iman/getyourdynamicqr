@@ -1,0 +1,111 @@
+// Prisma schema for Dynamic QR SaaS.
+// The datasource URL is configured in prisma.config.ts (Prisma 7).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------------------
+// USERS
+// ------------------------------------------------------------------
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  planType     String   @default("FREE")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  qrCodes       QRCode[]
+  customDomains CustomDomain[]
+  payments      Payment[]
+}
+
+// ------------------------------------------------------------------
+// QR CODES
+// ------------------------------------------------------------------
+model QRCode {
+  id             String    @id @default(cuid())
+  userId         String
+  title          String
+  shortCode      String    @unique
+  destinationUrl String
+  qrType         String    @default("URL")
+  isActive       Boolean   @default(true)
+  designConfig   Json?
+  domainId       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domain     CustomDomain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  scanEvents ScanEvent[]
+
+  @@index([shortCode])
+}
+
+// ------------------------------------------------------------------
+// CUSTOM DOMAINS
+// ------------------------------------------------------------------
+// Lets a user put their own hostname on the QR (e.g. https://qr.theirdomain.com).
+// isVerified gates whether redirects are served on that host. In this MVP we
+// auto-verify (see CUSTOM_DOMAIN_AUTO_VERIFY); a real product would verify a
+// DNS TXT record before setting this to true.
+model CustomDomain {
+  id         String   @id @default(cuid())
+  userId     String
+  domain     String   @unique
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrCodes  QRCode[]
+}
+
+// ------------------------------------------------------------------
+// INSTAPAY PAYMENTS
+// ------------------------------------------------------------------
+// A one-time order created when a user chooses to pay for a plan via
+// InstaPay. The user pays the wallet number with the unique reference, then
+// submits the InstaPay transaction reference to confirm (MVP: self-served
+// confirmation; a real shop would reconcile via the bank before upgrading).
+model Payment {
+  id          String   @id @default(cuid())
+  userId      String
+  planType    String
+  amountEGP   Int
+  reference   String   @unique
+  instapayRef String?
+  status      String   @default("PENDING") // PENDING | PAID
+  createdAt   DateTime @default(now())
+  paidAt      DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------------------
+// SCAN EVENTS
+// ------------------------------------------------------------------
+model ScanEvent {
+  id          String   @id @default(cuid())
+  qrCodeId    String
+  ipAddress   String?
+  countryCode String?
+  city        String?
+  deviceType  String?
+  os          String?
+  browser     String?
+  userAgent   String?
+  scannedAt   DateTime @default(now())
+
+  qrCode QRCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId, scannedAt(sort: Desc)])
+}
