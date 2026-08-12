@@ -1,0 +1,39 @@
+{
+  "name": "dynamic-qr-backend",
+  "version": "1.0.0",
+  "description": "Backend for Dynamic QR SaaS",
+  "type": "module",
+  "main": "src/app.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "nodemon --exec tsx src/app.js",
+    "start": "tsx src/app.js",
+    "postinstall": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
+    "pretest": "node test/prepare-db.mjs",
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "ua-parser-js": "^2.0.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^7.9.1",
+    "tsx": "^4.23.12"
+  }
+}
