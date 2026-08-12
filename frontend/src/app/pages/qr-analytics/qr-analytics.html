@@ -1,0 +1,128 @@
+<div class="topbar">
+  <div class="brand">Dynamic QR</div>
+  <a class="link" routerLink="/dashboard">Back to dashboard</a>
+</div>
+
+<main class="container">
+  @if (loading()) {
+    <p class="muted">Loading...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (data()) {
+    <h1>Analytics</h1>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="value">{{ data()!.totalScans }}</div>
+        <div class="label">Total scans</div>
+      </div>
+      <div class="stat">
+        <div class="value">{{ data()!.scansToday }}</div>
+        <div class="label">Today</div>
+      </div>
+      <div class="stat">
+        <div class="value">{{ data()!.scansThisWeek }}</div>
+        <div class="label">This week</div>
+      </div>
+    </div>
+
+    <h2>Scan activity &mdash; last 14 days</h2>
+    <div class="barchart">
+      @for (day of data()!.scansByDate; track day.date) {
+        <div class="bar-row">
+          <span class="bar-label">{{ day.date }}</span>
+          <div class="bar-track">
+            <div class="bar" [style.width.%]="(day.count / maxDayCount()) * 100"></div>
+          </div>
+          <span class="bar-count">{{ day.count }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="breakdown">
+      <div class="breakdown-col">
+        <h3>Devices</h3>
+        @if (data()!.devices.length === 0) {
+          <p class="muted">No data yet.</p>
+        } @else {
+          <table>
+            <tbody>
+              @for (item of data()!.devices; track item.name) {
+                <tr>
+                  <td class="capitalize">{{ item.name }}</td>
+                  <td class="count">{{ item.count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <div class="breakdown-col">
+        <h3>Operating systems</h3>
+        @if (data()!.operatingSystems.length === 0) {
+          <p class="muted">No data yet.</p>
+        } @else {
+          <table>
+            <tbody>
+              @for (item of data()!.operatingSystems; track item.name) {
+                <tr>
+                  <td>{{ item.name }}</td>
+                  <td class="count">{{ item.count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+
+      <div class="breakdown-col">
+        <h3>Browsers</h3>
+        @if (data()!.browsers.length === 0) {
+          <p class="muted">No data yet.</p>
+        } @else {
+          <table>
+            <tbody>
+              @for (item of data()!.browsers; track item.name) {
+                <tr>
+                  <td>{{ item.name }}</td>
+                  <td class="count">{{ item.count }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+    </div>
+
+    <h2>Recent scans</h2>
+    @if (data()!.recentScans.length === 0) {
+      <p class="muted">No scans yet.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>IP</th>
+            <th>Device</th>
+            <th>OS</th>
+            <th>Browser</th>
+            <th>User agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (scan of data()!.recentScans; track scan.id) {
+            <tr>
+              <td>{{ scan.scannedAt | date: 'medium' }}</td>
+              <td>{{ scan.ipAddress || '—' }}</td>
+              <td class="capitalize">{{ scan.deviceType || '—' }}</td>
+              <td>{{ scan.os || '—' }}</td>
+              <td>{{ scan.browser || '—' }}</td>
+              <td class="truncate" title="{{ scan.userAgent || '' }}">{{ scan.userAgent || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  }
+</main>

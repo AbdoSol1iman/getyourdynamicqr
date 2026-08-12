@@ -1,0 +1,64 @@
+<div class="topbar">
+  <div class="brand">Dynamic QR</div>
+  <a class="link" routerLink="/dashboard">Back to dashboard</a>
+</div>
+
+<main class="container">
+  @if (loading()) {
+    <p class="muted">Loading...</p>
+  } @else if (error() && !original) {
+    <p class="error">{{ error() }}</p>
+  } @else if (original) {
+    <h1>Edit QR code</h1>
+    <p class="note">
+      Changing the destination will <strong>not</strong> change the short code.
+      Your printed QR stays valid. Current code: <strong>{{ original.shortCode }}</strong>
+    </p>
+
+    <div class="layout">
+      <form [formGroup]="form" (ngSubmit)="onSubmit()">
+        <label for="title">Title</label>
+        <input id="title" formControlName="title" />
+        @if (form.controls.title.touched && form.controls.title.invalid) {
+          <div class="field-error">Title is required (max 100 characters).</div>
+        }
+
+        <label for="destinationUrl">Destination URL</label>
+        <input id="destinationUrl" formControlName="destinationUrl" />
+        @if (form.controls.destinationUrl.touched && form.controls.destinationUrl.invalid) {
+          <div class="field-error">Enter a valid http(s) URL.</div>
+        }
+
+        <label class="check">
+          <input type="checkbox" formControlName="isActive" />
+          Active (allowed to redirect)
+        </label>
+
+        @if (domains().length > 0) {
+          <label for="domainId">Domain on the QR link (optional)</label>
+          <select id="domainId" formControlName="domainId">
+            <option value="">Our default domain</option>
+            @for (domain of domains(); track domain.id) {
+              <option [value]="domain.id">https://{{ domain.domain }}</option>
+            }
+          </select>
+          <p class="hint">Changing this regenerates the QR link, not the short code.</p>
+        }
+
+        @if (error()) {
+          <p class="form-error">{{ error() }}</p>
+        }
+
+        <div class="actions">
+          <button type="submit" [disabled]="form.invalid">Save changes</button>
+          <a class="btn" routerLink="/dashboard">Cancel</a>
+        </div>
+      </form>
+
+      <div class="preview">
+        <app-qr-image [text]="original.redirectUrl" [size]="200" />
+        <p class="meta">This QR stays the same.</p>
+      </div>
+    </div>
+  }
+</main>

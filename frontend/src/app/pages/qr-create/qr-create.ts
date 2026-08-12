@@ -1,0 +1,51 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { QrCode, QrService } from '../../services/qr.service';
+import { DomainService } from '../../services/domain.service';
+import { QrImageComponent } from '../../components/qr-image/qr-image';
+
+@Component({
+  selector: 'app-qr-create',
+  imports: [ReactiveFormsModule, RouterLink, QrImageComponent],
+  templateUrl: './qr-create.html',
+  styleUrl: './qr-create.css',
+})
+export class QrCreate implements OnInit {
+  private fb = inject(FormBuilder);
+  private qrService = inject(QrService);
+  private domainService = inject(DomainService);
+
+  form = this.fb.nonNullable.group({
+    title: ['', [Validators.required, Validators.maxLength(100)]],
+    destinationUrl: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]],
+    domainId: [''],
+  });
+
+  readonly domains = signal<{ id: string; domain: string }[]>([]);
+  error = '';
+  created: QrCode | null = null;
+
+  ngOnInit(): void {
+    this.domainService.list().subscribe({
+      next: (domains) => this.domains.set(domains),
+      error: () => this.domains.set([]),
+    });
+  }
+
+  onSubmit(): void {
+    if (this.form.invalid) return;
+    this.error = '';
+
+    const { title, destinationUrl, domainId } = this.form.getRawValue();
+    this.qrService.create(title, destinationUrl, domainId || null).subscribe({
+      next: (qr) => (this.created = qr),
+      error: (err) => (this.error = err?.error?.message ?? 'Failed to create QR code'),
+    });
+  }
+
+  createAnother(): void {
+    this.created = null;
+    this.form.reset();
+  }
+}

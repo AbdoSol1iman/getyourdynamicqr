@@ -1,0 +1,68 @@
+<div class="topbar">
+  <div class="brand">Dynamic QR</div>
+  <a class="link" routerLink="/dashboard">Back to dashboard</a>
+</div>
+
+<main class="container">
+  <h1>Custom domains</h1>
+  <p class="subtitle">
+    Print your QR codes with your own domain instead of ours.
+    Example: <code>qr.myrestaurant.com/q/aX7bK9</code>
+  </p>
+
+  <div class="add-box">
+    <input
+      class="add-input"
+      [(ngModel)]="newDomain"
+      placeholder="qr.myrestaurant.com"
+      (keyup.enter)="addDomain()"
+    />
+    <button class="btn btn-primary" (click)="addDomain()">Add domain</button>
+  </div>
+
+  @if (addError) {
+    <p class="error">{{ addError }}</p>
+  }
+
+  <h2>Your domains</h2>
+
+  @if (loading()) {
+    <p class="muted">Loading...</p>
+  } @else if (error()) {
+    <p class="error">{{ error() }}</p>
+  } @else if (domains().length === 0) {
+    <p class="muted">
+      No domains yet. Add one above (DNS will point it at our server) and then
+      pick it when creating a QR code.
+    </p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Status</th>
+          <th>Added</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (domain of domains(); track domain.id) {
+          <tr>
+            <td>{{ domain.domain }}</td>
+            <td>
+              @if (domain.isVerified) {
+                <span class="badge">Verified</span>
+              } @else {
+                <span class="badge pending">Pending</span>
+              }
+            </td>
+            <td>{{ domain.createdAt | date: 'mediumDate' }}</td>
+            <td class="right">
+              <button class="btn btn-danger" (click)="remove(domain)">Remove</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</main>

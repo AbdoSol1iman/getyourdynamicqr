@@ -1,0 +1,60 @@
+<header class="topbar">
+  <div class="brand">Dynamic QR</div>
+  <div class="user">
+    <span class="email">{{ email }}</span>
+    <button class="link" (click)="logout()">Log out</button>
+  </div>
+</header>
+
+<main class="container">
+  <div class="header-row">
+    <h1>My QR codes</h1>
+    <div class="header-actions">
+      <a class="btn" routerLink="/plans">Plan: {{ planLabel() || '…' }}</a>
+      <a class="btn" routerLink="/domains">Custom domains</a>
+      <a class="btn btn-primary" routerLink="/qr/create">+ New QR code</a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="muted">Loading...</p>
+  } @else if (qrs().length === 0) {
+    <div class="empty">
+      <p>You don't have any QR codes yet.</p>
+      <a class="btn btn-primary" routerLink="/qr/create">Create your first QR code</a>
+    </div>
+  } @else {
+    <div class="grid">
+      @for (qr of qrs(); track qr.id) {
+        <div class="card">
+          <div class="card-top">
+            <h2>{{ qr.title }}</h2>
+            <span class="badge" [class.inactive]="!qr.isActive">
+              {{ qr.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+
+          <app-qr-image [text]="qr.redirectUrl" [size]="160" />
+
+          <p class="dest">{{ qr.destinationUrl }}</p>
+          <p class="meta">Code: {{ qr.shortCode }}</p>
+          <p class="meta">Scans: {{ qr.scanCount ?? 0 }}</p>
+          <p class="meta">Created: {{ qr.createdAt | date: 'mediumDate' }}</p>
+
+          <div class="actions">
+            <a class="btn" [routerLink]="['/qr', qr.id, 'edit']">Edit</a>
+            <a class="btn" [routerLink]="['/qr', qr.id, 'analytics']">Analytics</a>
+            <button class="btn" (click)="toggle(qr)">
+              {{ qr.isActive ? 'Disable' : 'Enable' }}
+            </button>
+            <button class="btn btn-danger" (click)="remove(qr)">Delete</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</main>

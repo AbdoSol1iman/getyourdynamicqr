@@ -1,0 +1,31 @@
+<div class="auth-card">
+  <h1>Create account</h1>
+  <p class="subtitle">Start building dynamic QR codes</p>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+    <label for="email">Email</label>
+    <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
+    @if (form.controls.email.touched && form.controls.email.invalid) {
+      <div class="field-error">Enter a valid email.</div>
+    }
+
+    <label for="password">Password</label>
+    <input id="password" type="password" formControlName="password" placeholder="At least 8 characters" />
+    @if (form.controls.password.touched && form.controls.password.invalid) {
+      <div class="field-error">Password must be at least 8 characters.</div>
+    }
+
+    @if (error) {
+      <p class="form-error">{{ error }}</p>
+    }
+    @if (success) {
+      <p class="form-success">Account created! Redirecting to sign in...</p>
+    }
+
+    <button type="submit" [disabled]="form.invalid">Create account</button>
+  </form>
+
+  <p class="switch">
+    Already have an account? <a routerLink="/login">Sign in</a>
+  </p>
+</div>

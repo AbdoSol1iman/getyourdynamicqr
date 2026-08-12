@@ -1,0 +1,11 @@
+:host {
+  display: inline-block;
+}
+
+img {
+  display: block;
+  border-radius: 6px;
+  background: #fff;
+  padding: 6px;
+  border: 1px solid #e2e4ec;
+}

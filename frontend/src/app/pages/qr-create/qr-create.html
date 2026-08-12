@@ -1,0 +1,54 @@
+<div class="topbar">
+  <div class="brand">Dynamic QR</div>
+  <a class="link" routerLink="/dashboard">Back to dashboard</a>
+</div>
+
+<main class="container">
+  @if (!created) {
+    <h1>Create QR code</h1>
+    <p class="subtitle">The QR will point to our server and redirect to your destination.</p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <label for="title">Title</label>
+      <input id="title" formControlName="title" placeholder="My Restaurant" />
+      @if (form.controls.title.touched && form.controls.title.invalid) {
+        <div class="field-error">Title is required (max 100 characters).</div>
+      }
+
+      <label for="destinationUrl">Destination URL</label>
+      <input id="destinationUrl" formControlName="destinationUrl" placeholder="https://example.com" />
+      @if (form.controls.destinationUrl.touched && form.controls.destinationUrl.invalid) {
+        <div class="field-error">Enter a valid http(s) URL.</div>
+      }
+
+      @if (domains().length > 0) {
+        <label for="domainId">Domain on the QR link (optional)</label>
+        <select id="domainId" formControlName="domainId">
+          <option value="">Our default domain</option>
+          @for (domain of domains(); track domain.id) {
+            <option [value]="domain.id">https://{{ domain.domain }}</option>
+          }
+        </select>
+        <p class="hint">Print the QR on your own domain instead of ours.</p>
+      }
+
+      @if (error) {
+        <p class="form-error">{{ error }}</p>
+      }
+
+      <button type="submit" [disabled]="form.invalid">Generate QR code</button>
+    </form>
+  } @else {
+    <h1>QR code created!</h1>
+    <div class="result">
+      <app-qr-image [text]="created.redirectUrl!" [size]="220" />
+      <p class="dest">Redirects to: {{ created.destinationUrl }}</p>
+      <p class="meta">Short code: {{ created.shortCode }}</p>
+      <p class="meta">QR URL: {{ created.redirectUrl }}</p>
+      <div class="actions">
+        <button class="btn" (click)="createAnother()">Create another</button>
+        <a class="btn btn-primary" routerLink="/dashboard">Go to dashboard</a>
+      </div>
+    </div>
+  }
+</main>
