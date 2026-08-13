@@ -11,6 +11,22 @@ import { apiLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+};
+
 function isAllowedOrigin(origin) {
   if (!origin) {
     return false;
@@ -30,23 +46,10 @@ app.set("trust proxy", 1);
 
 // CORS: in production, restrict to the origins listed in CORS_ORIGINS
 // (comma-separated). If unset (local dev), allow all origins (spec §20).
-const allowedOrigins = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
-
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.length === 0 || isAllowedOrigin(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(new Error(`Not allowed by CORS: ${origin}`));
-    },
-  })
+  cors(corsOptions)
 );
+app.options("*", cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {

@@ -35,7 +35,9 @@ export class Login {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error = err?.error?.message ?? 'Login failed';
+        this.error =
+          err?.error?.message ??
+          (err?.status === 0 ? 'Failed to fetch. Check the API URL and CORS settings.' : 'Login failed');
       },
     });
   }
