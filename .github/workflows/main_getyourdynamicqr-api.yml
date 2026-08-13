@@ -28,7 +28,7 @@ jobs:
       - name: Generate Prisma Client
         working-directory: backend
         env:
-          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          DATABASE_URL: "******localhost:5432/dummy"
         run: npx prisma generate
 
       - name: Upload backend artifact
@@ -62,7 +62,14 @@ jobs:
       - name: Create deployment package
         run: |
           cd backend
-          zip -r ../backend.zip . -x "node_modules/*"
+          zip -r ../backend.zip .
+
+      - name: Ensure Node version on App Service
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az webapp config appsettings set --resource-group dynamicqr-rg --name getyourdynamicqr-api --settings WEBSITE_NODE_DEFAULT_VERSION=22.12.0
 
       - name: Deploy to Azure Web App
         uses: azure/cli@v2
