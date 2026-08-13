@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://getyourdynamicqr-api.azurewebsites.net'
+  apiUrl: 'http://localhost:3000'
 };
