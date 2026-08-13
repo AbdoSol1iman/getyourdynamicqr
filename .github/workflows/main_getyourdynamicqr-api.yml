@@ -28,7 +28,7 @@ jobs:
       - name: Generate Prisma Client
         working-directory: backend
         env:
-          DATABASE_URL: "******localhost:5432/dummy"
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/dummy"
         run: npx prisma generate
 
       - name: Upload backend artifact
@@ -42,7 +42,6 @@ jobs:
     needs: build
 
     permissions:
-      id-token: write
       contents: read
 
     steps:
@@ -52,32 +51,14 @@ jobs:
           name: node-app
           path: backend
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_3BF87F7246684489A47C99507D803761 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3F330CA2ECD14CA9B0DD0E368F7011E8 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_918884B5ABB742B5B8DF393889655968 }}
-
       - name: Create deployment package
         run: |
           cd backend
           zip -r ../backend.zip .
 
-      - name: Ensure Node version on App Service
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az webapp config appsettings set --resource-group dynamicqr-rg --name getyourdynamicqr-api --settings WEBSITE_NODE_DEFAULT_VERSION=22.12.0
-
       - name: Deploy to Azure Web App
-        uses: azure/cli@v2
+        uses: azure/webapps-deploy@v3
         with:
-          azcliversion: latest
-          inlineScript: |
-            az webapp deploy \
-              --resource-group dynamicqr-rg \
-              --name getyourdynamicqr-api \
-              --src-path backend.zip \
-              --type zip
+          app-name: getyourdynamicqr-api
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
+          package: backend.zip
