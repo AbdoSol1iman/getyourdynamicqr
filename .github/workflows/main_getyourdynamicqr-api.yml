@@ -56,66 +56,9 @@ jobs:
           cd backend
           zip -r ../backend.zip .
 
-      - name: Deploy with Kudu ZipDeploy
-        env:
-          PUBLISH_PROFILE: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
-        run: |
-          set -euo pipefail
-          PROFILE_FILE="$(mktemp)"
-          printf '%s' "$PUBLISH_PROFILE" > "$PROFILE_FILE"
-          PROFILE_CONTENT="$(tr -d '\r\n' < "$PROFILE_FILE")"
-
-          PROFILE_LINE="$(echo "$PROFILE_CONTENT" | grep -o '<publishProfile[^>]*/>' | grep -m1 -E 'publishMethod=\"(ZipDeploy|MSDeploy)\"' || true)"
-          if [ -z "${PROFILE_LINE:-}" ]; then
-            echo "Could not find a usable publish profile entry."
-            exit 1
-          fi
-
-          PUBLISH_URL="$(echo "$PROFILE_LINE" | grep -o 'publishUrl=\"[^\"]*\"' | head -n1 | cut -d'"' -f2 || true)"
-          USER_NAME="$(echo "$PROFILE_LINE" | grep -o 'userName=\"[^\"]*\"' | head -n1 | cut -d'"' -f2 || true)"
-          USER_PASSWORD="$(echo "$PROFILE_LINE" | grep -o 'userPWD=\"[^\"]*\"' | head -n1 | cut -d'"' -f2 || true)"
-
-          if [ -z "${PUBLISH_URL:-}" ] || [ -z "${USER_NAME:-}" ] || [ -z "${USER_PASSWORD:-}" ]; then
-            echo "Publish profile does not contain complete deployment credentials."
-            exit 1
-          fi
-
-          KUDU_HOST="${PUBLISH_URL%%:*}"
-          if [ "$KUDU_HOST" = "$PUBLISH_URL" ]; then
-            KUDU_HOST="$PUBLISH_URL"
-          fi
-          KUDU_ZIPDEPLOY_URL="https://${KUDU_HOST}/api/zipdeploy?isAsync=true"
-
-          RESPONSE_HEADERS="$(mktemp)"
-          curl --fail --show-error --silent \
-            --user "${USER_NAME}:${USER_PASSWORD}" \
-            --data-binary "@backend.zip" \
-            --header "Content-Type: application/zip" \
-            --dump-header "$RESPONSE_HEADERS" \
-            --request POST \
-            "$KUDU_ZIPDEPLOY_URL" >/dev/null
-
-          POLL_URL="$(awk 'BEGIN{IGNORECASE=1}/^Location:/{print $2}' "$RESPONSE_HEADERS" | tr -d '\r' | tail -n1)"
-          if [ -z "${POLL_URL:-}" ]; then
-            POLL_URL="https://${KUDU_HOST}/api/deployments/latest"
-          fi
-
-          for i in $(seq 1 30); do
-            STATUS_JSON="$(curl --fail --show-error --silent --user "${USER_NAME}:${USER_PASSWORD}" "$POLL_URL")"
-            STATUS="$(echo "$STATUS_JSON" | grep -o '\"status\"[[:space:]]*:[[:space:]]*[0-9]*' | head -n1 | cut -d: -f2 | tr -d ' ')"
-
-            if [ "$STATUS" = "4" ]; then
-              echo "ZipDeploy completed successfully."
-              exit 0
-            fi
-            if [ "$STATUS" = "3" ]; then
-              echo "ZipDeploy failed."
-              echo "$STATUS_JSON"
-              exit 1
-            fi
-
-            sleep 5
-          done
-
-          echo "ZipDeploy did not complete within timeout."
-          exit 1
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: getyourdynamicqr-api
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
+          package: backend.zip
