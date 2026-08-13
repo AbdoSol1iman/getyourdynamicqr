@@ -48,10 +48,39 @@ jobs:
           name: node-app
           path: backend
 
+      - name: Resolve deployment target from publish profile
+        id: resolve-target
+        env:
+          AZURE_WEBAPP_PUBLISH_PROFILE: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
+        run: |
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          profile_xml = os.environ["AZURE_WEBAPP_PUBLISH_PROFILE"]
+          root = ET.fromstring(profile_xml)
+          publish_profiles = root.findall("publishProfile")
+          msdeploy_profile = next(
+              (profile for profile in publish_profiles if profile.attrib.get("publishMethod") == "MSDeploy"),
+              publish_profiles[0],
+          )
+          username = msdeploy_profile.attrib.get("userName", "").lstrip("$")
+          app_name, _, slot_name = username.partition("__")
+          slot_name = slot_name or "production"
+
+          if not app_name:
+              raise SystemExit("Unable to parse app name from Azure publish profile userName.")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"app-name={app_name}\n")
+              output.write(f"slot-name={slot_name}\n")
+          PY
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: "getyourdynamicqr-api"
+          app-name: ${{ steps.resolve-target.outputs.app-name }}
+          slot-name: ${{ steps.resolve-target.outputs.slot-name }}
           package: backend
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
