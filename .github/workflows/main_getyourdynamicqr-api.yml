@@ -56,9 +56,43 @@ jobs:
           cd backend
           zip -r ../backend.zip .
 
+      - name: Resolve app and slot from publish profile
+        id: profile_target
+        env:
+          PUBLISH_PROFILE: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
+        run: |
+          set -euo pipefail
+          PROFILE_FILE="$(mktemp)"
+          printf '%s' "$PUBLISH_PROFILE" > "$PROFILE_FILE"
+
+          APP_NAME="$(grep -o 'msdeploySite=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
+          if [ -z "${APP_NAME:-}" ]; then
+            APP_NAME="$(grep -o 'siteName=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
+          fi
+
+          SLOT_NAME="production"
+          PROFILE_NAME="$(grep -o 'profileName=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
+          if echo "$PROFILE_NAME" | grep -q ' - '; then
+            CANDIDATE_SLOT="$(echo "$PROFILE_NAME" | sed -E 's/^[^-]+ - ([^-]+) - .*/\1/' | tr '[:upper:]' '[:lower:]')"
+            if [ -n "${CANDIDATE_SLOT:-}" ] && [ "$CANDIDATE_SLOT" != "$PROFILE_NAME" ]; then
+              SLOT_NAME="$CANDIDATE_SLOT"
+            fi
+          fi
+
+          if [ -z "${APP_NAME:-}" ]; then
+            echo "Could not parse app name from publish profile."
+            exit 1
+          fi
+
+          {
+            echo "app_name=$APP_NAME"
+            echo "slot_name=$SLOT_NAME"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: getyourdynamicqr-api
+          app-name: ${{ steps.profile_target.outputs.app_name }}
+          slot-name: ${{ steps.profile_target.outputs.slot_name }}
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
           package: backend.zip
