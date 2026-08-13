@@ -56,8 +56,7 @@ jobs:
           cd backend
           zip -r ../backend.zip .
 
-      - name: Resolve app and slot from publish profile
-        id: profile_target
+      - name: Deploy with Kudu ZipDeploy
         env:
           PUBLISH_PROFILE: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
         run: |
@@ -65,34 +64,57 @@ jobs:
           PROFILE_FILE="$(mktemp)"
           printf '%s' "$PUBLISH_PROFILE" > "$PROFILE_FILE"
 
-          APP_NAME="$(grep -o 'msdeploySite=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
-          if [ -z "${APP_NAME:-}" ]; then
-            APP_NAME="$(grep -o 'siteName=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
-          fi
-
-          SLOT_NAME="production"
-          PROFILE_NAME="$(grep -o 'profileName=\"[^\"]*\"' "$PROFILE_FILE" | head -n1 | cut -d'"' -f2)"
-          if echo "$PROFILE_NAME" | grep -q ' - '; then
-            CANDIDATE_SLOT="$(echo "$PROFILE_NAME" | sed -E 's/^[^-]+ - ([^-]+) - .*/\1/' | tr '[:upper:]' '[:lower:]')"
-            if [ -n "${CANDIDATE_SLOT:-}" ] && [ "$CANDIDATE_SLOT" != "$PROFILE_NAME" ]; then
-              SLOT_NAME="$CANDIDATE_SLOT"
-            fi
-          fi
-
-          if [ -z "${APP_NAME:-}" ]; then
-            echo "Could not parse app name from publish profile."
+          PROFILE_LINE="$(grep -o '<publishProfile[^>]*/>' "$PROFILE_FILE" | grep -m1 -E 'publishMethod=\"(ZipDeploy|MSDeploy)\"')"
+          if [ -z "${PROFILE_LINE:-}" ]; then
+            echo "Could not find a usable publish profile entry."
             exit 1
           fi
 
-          {
-            echo "app_name=$APP_NAME"
-            echo "slot_name=$SLOT_NAME"
-          } >> "$GITHUB_OUTPUT"
+          PUBLISH_URL="$(echo "$PROFILE_LINE" | grep -o 'publishUrl=\"[^\"]*\"' | head -n1 | cut -d'"' -f2)"
+          USER_NAME="$(echo "$PROFILE_LINE" | grep -o 'userName=\"[^\"]*\"' | head -n1 | cut -d'"' -f2)"
+          USER_PASSWORD="$(echo "$PROFILE_LINE" | grep -o 'userPWD=\"[^\"]*\"' | head -n1 | cut -d'"' -f2)"
 
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ steps.profile_target.outputs.app_name }}
-          slot-name: ${{ steps.profile_target.outputs.slot_name }}
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
-          package: backend.zip
+          if [ -z "${PUBLISH_URL:-}" ] || [ -z "${USER_NAME:-}" ] || [ -z "${USER_PASSWORD:-}" ]; then
+            echo "Publish profile does not contain complete deployment credentials."
+            exit 1
+          fi
+
+          KUDU_HOST="${PUBLISH_URL%%:*}"
+          if [ "$KUDU_HOST" = "$PUBLISH_URL" ]; then
+            KUDU_HOST="$PUBLISH_URL"
+          fi
+          KUDU_ZIPDEPLOY_URL="https://${KUDU_HOST}/api/zipdeploy?isAsync=true"
+
+          RESPONSE_HEADERS="$(mktemp)"
+          curl --fail --show-error --silent \
+            --user "${USER_NAME}:${USER_PASSWORD}" \
+            --data-binary "@backend.zip" \
+            --header "Content-Type: application/zip" \
+            --dump-header "$RESPONSE_HEADERS" \
+            --request POST \
+            "$KUDU_ZIPDEPLOY_URL" >/dev/null
+
+          POLL_URL="$(awk 'BEGIN{IGNORECASE=1}/^Location:/{print $2}' "$RESPONSE_HEADERS" | tr -d '\r' | tail -n1)"
+          if [ -z "${POLL_URL:-}" ]; then
+            POLL_URL="https://${KUDU_HOST}/api/deployments/latest"
+          fi
+
+          for i in $(seq 1 30); do
+            STATUS_JSON="$(curl --fail --show-error --silent --user "${USER_NAME}:${USER_PASSWORD}" "$POLL_URL")"
+            STATUS="$(echo "$STATUS_JSON" | grep -o '\"status\"[[:space:]]*:[[:space:]]*[0-9]*' | head -n1 | cut -d: -f2 | tr -d ' ')"
+
+            if [ "$STATUS" = "4" ]; then
+              echo "ZipDeploy completed successfully."
+              exit 0
+            fi
+            if [ "$STATUS" = "3" ]; then
+              echo "ZipDeploy failed."
+              echo "$STATUS_JSON"
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "ZipDeploy did not complete within timeout."
+          exit 1
