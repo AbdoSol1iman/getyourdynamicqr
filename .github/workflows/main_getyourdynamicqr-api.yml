@@ -53,6 +53,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: "getyourdynamicqr-api"
-          slot-name: "Production"
           package: backend
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22739EA2D8B24A09BEC8EA2023B400D1 }}
