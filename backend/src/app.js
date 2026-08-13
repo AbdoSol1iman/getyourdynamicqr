@@ -11,6 +11,18 @@ import { apiLimiter } from "./middleware/rateLimit.js";
 
 const app = express();
 
+function isAllowedOrigin(origin) {
+  if (!origin) {
+    return false;
+  }
+
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return origin.endsWith('.vercel.app');
+}
+
 // Trust the first reverse proxy hop so req.ip reflects the real client IP.
 // Required in production (Render/Vercel) for accurate rate limiting and
 // scan-event IPs; harmless in local dev without a proxy.
@@ -25,7 +37,14 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "")
 
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.length === 0 || isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
   })
 );
 app.use(express.json());
