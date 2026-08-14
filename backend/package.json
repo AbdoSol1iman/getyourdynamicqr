@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "nodemon --exec tsx src/app.js",
-    "dev": "node src/app.js",
+    "start": "node src/app.js",
     "postinstall": "prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "pretest": "node test/prepare-db.mjs",

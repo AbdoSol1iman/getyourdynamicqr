@@ -49,7 +49,7 @@ app.set("trust proxy", 1);
 app.use(
   cors(corsOptions)
 );
-app.options("*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
