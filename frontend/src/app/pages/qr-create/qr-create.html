@@ -49,7 +49,18 @@
         <p class="form-error" role="alert">{{ error }}</p>
       }
 
-      <button class="btn btn-primary btn-block" type="submit" [disabled]="form.invalid">Generate QR code</button>
+      <button
+        class="btn btn-primary btn-block"
+        type="submit"
+        [disabled]="form.invalid || submitting()"
+      >
+        @if (submitting()) {
+          <span class="spinner" aria-hidden="true"></span>
+          Creating…
+        } @else {
+          Generate QR code
+        }
+      </button>
     </form>
   } @else {
     <div class="result">

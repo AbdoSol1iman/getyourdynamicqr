@@ -21,6 +21,7 @@ export class QrEdit implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly domains = signal<{ id: string; domain: string }[]>([]);
+  readonly submitting = signal(false);
   original: QrCode | null = null;
 
   form = this.fb.nonNullable.group({
@@ -55,13 +56,20 @@ export class QrEdit implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.original) return;
+    if (this.form.invalid || !this.original || this.submitting()) return;
     this.error.set('');
+    this.submitting.set(true);
 
     const { title, destinationUrl, isActive, domainId } = this.form.getRawValue();
     this.qrService.update(this.original.id, { title, destinationUrl, isActive, domainId: domainId || null }).subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (err) => this.error.set(err?.error?.message ?? 'Update failed'),
+      next: () => {
+        this.submitting.set(false);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (err) => {
+        this.submitting.set(false);
+        this.error.set(err?.error?.message ?? 'Update failed');
+      },
     });
   }
 }
