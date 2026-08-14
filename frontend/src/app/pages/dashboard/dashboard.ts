@@ -1,10 +1,12 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
-import { QrCode, QrService } from '../../services/qr.service';
+import { QrCode, QrHealth, QrService } from '../../services/qr.service';
 import { AuthService } from '../../services/auth.service';
 import { BillingService } from '../../services/billing.service';
 import { QrImageComponent } from '../../components/qr-image/qr-image';
+
+type HealthState = { type: 'checking' } | { type: 'result'; health: QrHealth } | { type: 'error'; message: string };
 
 @Component({
   selector: 'app-dashboard',
@@ -21,6 +23,7 @@ export class Dashboard implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly qrs = signal<QrCode[]>([]);
+  readonly healthByQr = signal<Record<string, HealthState>>({});
   readonly planLabel = signal('');
   readonly email = this.auth.currentUser()?.email ?? '';
 
@@ -45,6 +48,36 @@ export class Dashboard implements OnInit {
         this.loading.set(false);
       },
     });
+  }
+
+  healthFor(qr: QrCode): HealthState {
+    if (qr.health) return { type: 'result', health: qr.health };
+    return this.healthByQr()[qr.id] ?? { type: 'result', health: { ok: false, redirectUrl: qr.redirectUrl, checks: { noLocalhost: false, qrImage: false, reachable: false, targetMatch: false } } };
+  }
+
+  verify(qr: QrCode): void {
+    this.healthByQr.update((map) => ({ ...map, [qr.id]: { type: 'checking' } }));
+    this.qrService.health(qr.id).subscribe({
+      next: ({ health }) => this.healthByQr.update((map) => ({ ...map, [qr.id]: { type: 'result', health } })),
+      error: (err) =>
+        this.healthByQr.update((map) => ({
+          ...map,
+          [qr.id]: { type: 'error', message: err?.error?.message ?? 'Verification failed' },
+        })),
+    });
+  }
+
+  failedChecks(health: QrHealth): string {
+    const labels: Record<keyof QrHealth['checks'], string> = {
+      noLocalhost: 'redirect URL is not production-safe',
+      qrImage: 'QR image failed to generate',
+      reachable: 'redirect endpoint is not reachable',
+      targetMatch: 'redirect does not resolve to the destination',
+    };
+    return Object.entries(health.checks)
+      .filter(([, ok]) => !ok)
+      .map(([key]) => labels[key as keyof QrHealth['checks']])
+      .join('; ');
   }
 
   toggle(qr: QrCode): void {

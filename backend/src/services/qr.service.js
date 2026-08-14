@@ -4,19 +4,48 @@ import { generateShortCode } from "../utils/shortCode.js";
 import { parseUserAgent } from "../utils/userAgent.js";
 import { getPlan } from "../config/plans.js";
 import { getUserPlanType } from "./billing.service.js";
+import { checkQrHealth } from "./qr.health.js";
 
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+// Public base URL used to build QR redirect links. Priority order:
+//   1. BASE_URL env var (explicit override, e.g. a custom domain / reverse proxy).
+//   2. WEBSITE_HOSTNAME (set automatically by Azure App Service) -> https://<host>.
+//   3. Localhost, dev only.
+// In production, if neither BASE_URL nor WEBSITE_HOSTNAME exists we fail fast
+// rather than silently emitting localhost links in printed QR codes.
+function resolveBaseUrl() {
+  const explicit = (process.env.BASE_URL || "").trim().replace(/\/+$/, "");
+  if (explicit) return explicit;
+
+  const host = (process.env.WEBSITE_HOSTNAME || "").trim();
+  if (host) return `https://${host}`;
+
+  return "http://localhost:3000";
+}
+
+// Enforced once at startup so a misconfigured production box never serves
+// localhost redirect links.
+if (process.env.NODE_ENV === "production" && !process.env.BASE_URL && !process.env.WEBSITE_HOSTNAME) {
+  throw new Error(
+    "BASE_URL is not set. Configure a production BASE_URL (or rely on the Azure WEBSITE_HOSTNAME) or QR redirect links will point at localhost."
+  );
+}
+
+// Read lazily so tests (and runtime config changes) can point it at the actual
+// ephemeral server port.
+export function getBaseUrl() {
+  return resolveBaseUrl();
+}
 
 // Hostname of our own server; used to tell "normal" scans from custom-domain
 // scans in the redirect controller.
 export function getBaseHost() {
-  return new URL(BASE_URL).hostname;
+  return new URL(getBaseUrl()).hostname;
 }
 
 // Builds the public link a QR encodes. Custom domain QRs use the domain, all
 // others use our default host.
 function redirectUrlFor(qr) {
-  const base = qr.domain ? `https://${qr.domain.domain}` : BASE_URL;
+  const base = qr.domain ? `https://${qr.domain.domain}` : getBaseUrl();
   return `${base}/q/${qr.shortCode}`;
 }
 
@@ -36,6 +65,19 @@ async function findVerifiedDomain(userId, domainId) {
     throw err;
   }
   return domain;
+}
+
+// The QR image is a base64 PNG data URL encoding OUR redirect URL (never the
+// destination). Returns null if generation fails so callers can surface it.
+export async function qrImageFor(redirectUrl) {
+  try {
+    const dataUrl = await QRCode.toDataURL(redirectUrl);
+    return typeof dataUrl === "string" && dataUrl.startsWith("data:image/png;base64,")
+      ? dataUrl
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function validateDestinationUrl(url) {
@@ -107,7 +149,12 @@ export async function createQr({ userId, title, destinationUrl, domainId }) {
   // The QR image encodes OUR redirect URL (on the default or custom host),
   // never the destination (spec §32).
   const redirectUrl = redirectUrlFor(qr);
-  const qrImage = await QRCode.toDataURL(redirectUrl);
+  const qrImage = await qrImageFor(redirectUrl);
+
+  // Verify the freshly created QR before it's considered ready: the redirect
+  // URL must be production-safe, the image must exist, the redirect endpoint
+  // must answer, and it must resolve to the requested destination.
+  const health = await checkQrHealth({ redirectUrl, qrImage, destinationUrl });
 
   return {
     id: qr.id,
@@ -120,6 +167,7 @@ export async function createQr({ userId, title, destinationUrl, domainId }) {
     createdAt: qr.createdAt,
     domain: qr.domain,
     qrImage,
+    health,
   };
 }
 
@@ -177,17 +225,38 @@ export async function listQrs(userId) {
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { scanEvents: true } }, domain: true },
   });
-  return qrs.map((qr) => ({
-    ...qr,
-    scanCount: qr._count.scanEvents,
-    redirectUrl: redirectUrlFor(qr),
-    _count: undefined,
-  }));
+  const mapped = qrs.map((qr) => {
+    const redirectUrl = redirectUrlFor(qr);
+    return {
+      ...qr,
+      scanCount: qr._count.scanEvents,
+      redirectUrl,
+      _count: undefined,
+    };
+  });
+  // Generate a QR image for every card so the dashboard never has to render a
+  // blank tile. Best-effort: a null image surfaces as a placeholder client-side.
+  const images = await Promise.all(mapped.map((qr) => qrImageFor(qr.redirectUrl)));
+  return mapped.map((qr, i) => ({ ...qr, qrImage: images[i] }));
 }
 
 export async function getQr(userId, id) {
   const qr = await findOwnedQr(userId, id);
-  return { ...qr, redirectUrl: redirectUrlFor(qr) };
+  const redirectUrl = redirectUrlFor(qr);
+  return { ...qr, redirectUrl, qrImage: await qrImageFor(redirectUrl) };
+}
+
+// Re-runs the full health/validation check on demand (dashboard "Verify").
+export async function verifyQrHealth(userId, id) {
+  const qr = await findOwnedQr(userId, id);
+  const redirectUrl = redirectUrlFor(qr);
+  const qrImage = await qrImageFor(redirectUrl);
+  const health = await checkQrHealth({
+    redirectUrl,
+    qrImage,
+    destinationUrl: qr.destinationUrl,
+  });
+  return { redirectUrl, qrImage, health };
 }
 
 export async function updateQr(userId, id, updates) {
@@ -247,7 +316,8 @@ export async function updateQr(userId, id, updates) {
 
   // Re-fetch so the response includes the (possibly changed) domain relation.
   const qr = await findOwnedQr(userId, id);
-  return { ...qr, redirectUrl: redirectUrlFor(qr) };
+  const redirectUrl = redirectUrlFor(qr);
+  return { ...qr, redirectUrl, qrImage: await qrImageFor(redirectUrl) };
 }
 
 export async function softDeleteQr(userId, id) {

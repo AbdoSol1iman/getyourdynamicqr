@@ -6,6 +6,11 @@ import {
   registerAndLogin,
   createAndLogin,
 } from "./helpers.js";
+import { checkQrHealth } from "../src/services/qr.health.js";
+
+// The base URL the redirect engine builds QR links from (pointed at the live
+// test server by helpers.startApi).
+const testBase = () => process.env.BASE_URL.replace(/\/$/, "");
 
 // QR lifecycle, plan gating, ownership checks, soft delete, and the public
 // redirect engine (302 + scan logging).
@@ -34,8 +39,65 @@ describe("qr codes", () => {
     assert.ok(res.json.data.shortCode.match(/^[A-Za-z0-9]{6}$/));
     assert.ok(res.json.data.qrImage.startsWith("data:image/png;base64,"));
     // The QR encodes OUR url, never the destination (spec §32).
-    assert.equal(res.json.data.redirectUrl, `http://127.0.0.1/q/${res.json.data.shortCode}`);
+    assert.equal(res.json.data.redirectUrl, `${testBase()}/q/${res.json.data.shortCode}`);
     assert.equal(res.json.data.destinationUrl, "https://resto.example/menu");
+    // Health: every check passes for a healthy QR — image generated, endpoint
+    // reachable, and the redirect resolves to the destination. (localhost is
+    // allowed in the test env, so noLocalhost passes.)
+    assert.equal(res.json.data.health.ok, true);
+    assert.deepEqual(res.json.data.health.checks, {
+      noLocalhost: true,
+      qrImage: true,
+      reachable: true,
+      targetMatch: true,
+    });
+  });
+
+  test("list and get return a QR image for every card", async () => {
+    const mine = await api("/api/qr", { token: user.token });
+    assert.equal(mine.status, 200);
+    assert.ok(mine.json.data.length >= 1);
+    assert.ok(mine.json.data.every((qr) => qr.redirectUrl && qr.redirectUrl.length > 0));
+    assert.ok(
+      mine.json.data.every((qr) => qr.qrImage && qr.qrImage.startsWith("data:image/png;base64,"))
+    );
+
+    const one = await api(`/api/qr/${mine.json.data[0].id}`, { token: user.token });
+    assert.equal(one.status, 200);
+    assert.ok(one.json.data.qrImage.startsWith("data:image/png;base64,"));
+  });
+
+  test("GET /api/qr/:id/health re-verifies an existing QR", async () => {
+    const created = await createQr(user.token, { destinationUrl: "https://health.example" });
+    const id = created.json.data.id;
+    const res = await api(`/api/qr/${id}/health`, { token: user.token });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.data.health.ok, true);
+    assert.equal(res.json.data.health.checks.reachable, true);
+    assert.equal(res.json.data.health.checks.targetMatch, true);
+    assert.ok(res.json.data.qrImage.startsWith("data:image/png;base64,"));
+    // Ownership is enforced on the health endpoint too.
+    const intruder = await registerAndLogin();
+    assert.equal((await api(`/api/qr/${id}/health`, { token: intruder.token })).status, 404);
+  });
+
+  test("health flags localhost redirect URLs in production but allows them in dev", async () => {
+    const args = {
+      redirectUrl: "http://localhost:3000/q/ABC123",
+      qrImage: "data:image/png;base64,AAAA",
+      destinationUrl: "https://example.com",
+    };
+    const original = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = "production";
+      const prod = await checkQrHealth(args);
+      assert.equal(prod.checks.noLocalhost, false);
+      assert.equal(prod.ok, false);
+    } finally {
+      process.env.NODE_ENV = original;
+    }
+    const dev = await checkQrHealth(args);
+    assert.equal(dev.checks.noLocalhost, true);
   });
 
   test("list returns only the user's own QR codes", async () => {
@@ -81,7 +143,7 @@ describe("qr codes", () => {
     assert.equal(patch.status, 200);
     assert.equal(patch.json.data.shortCode, shortCode);
     assert.equal(patch.json.data.destinationUrl, "https://b.example/2");
-    assert.equal(patch.json.data.redirectUrl, `http://127.0.0.1/q/${shortCode}`);
+    assert.equal(patch.json.data.redirectUrl, `${testBase()}/q/${shortCode}`);
   });
 
   test("FREE plan limit: a fourth QR is rejected with 403", async () => {

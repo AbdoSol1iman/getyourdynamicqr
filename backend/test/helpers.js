@@ -50,6 +50,10 @@ export async function startApi() {
     const instance = app.listen(0, () => resolve(instance));
   });
   baseUrl = `http://127.0.0.1:${server.address().port}`;
+  // Point BASE_URL at the running server so QR health checks (reachability +
+  // target match) probe THIS process instead of port 80. Read lazily by the
+  // service, so a pre-imported app picks it up on the next request.
+  process.env.BASE_URL = baseUrl;
   return baseUrl;
 }
 

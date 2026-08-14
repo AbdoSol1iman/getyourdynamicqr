@@ -5,6 +5,7 @@ import {
   updateQr,
   softDeleteQr,
   getQrAnalytics,
+  verifyQrHealth,
 } from "../services/qr.service.js";
 
 export async function create(req, res) {
@@ -35,5 +36,10 @@ export async function remove(req, res) {
 
 export async function analytics(req, res) {
   const result = await getQrAnalytics(req.user.userId, req.params.id);
+  res.json({ success: true, data: result });
+}
+
+export async function health(req, res) {
+  const result = await verifyQrHealth(req.user.userId, req.params.id);
   res.json({ success: true, data: result });
 }

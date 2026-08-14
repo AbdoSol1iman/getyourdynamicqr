@@ -11,3 +11,51 @@ img {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
+
+.qr-loading,
+.qr-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: var(--qr-size, 180px);
+  height: var(--qr-size, 180px);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent, var(--color-primary));
+  border-radius: 50%;
+  animation: qr-spin 0.8s linear infinite;
+}
+
+@keyframes qr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-retry {
+  padding: 4px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.btn-retry:hover {
+  border-color: var(--color-primary);
+}

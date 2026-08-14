@@ -4,6 +4,7 @@ import {
   getBaseHost,
   recordScan,
 } from "../services/qr.service.js";
+import { HEALTH_CHECK_UA } from "../services/qr.health.js";
 
 function cleanIp(rawIp) {
   if (!rawIp) return null;
@@ -24,15 +25,19 @@ export async function redirect(req, res) {
     return res.status(404).json({ success: false, message: "QR code not found" });
   }
 
-  // Scan logging is best-effort: a failure must not block the redirect (spec §15).
-  try {
-    await recordScan({
-      qrCodeId: qr.id,
-      ipAddress: cleanIp(req.ip),
-      userAgent: req.get("user-agent") || null,
-    });
-  } catch (err) {
-    console.error("Failed to record scan:", err);
+  // Scan logging is best-effort: a failure must not block the redirect
+  // (spec §15). Health/verification probes are not real scans and must not
+  // inflate the QR's analytics counts.
+  if (req.get("user-agent") !== HEALTH_CHECK_UA) {
+    try {
+      await recordScan({
+        qrCodeId: qr.id,
+        ipAddress: cleanIp(req.ip),
+        userAgent: req.get("user-agent") || null,
+      });
+    } catch (err) {
+      console.error("Failed to record scan:", err);
+    }
   }
 
   // 302 (not 301): temporary redirect so destination changes and scan tracking

@@ -4,8 +4,13 @@ Deploy the Dynamic QR SaaS to production using:
 
 - **GitHub** – source code hosting
 - **Neon** – free hosted PostgreSQL
-- **Render** – Node.js backend
+- **Azure App Service** – Node.js backend (`getyourdynamicqr-api`)
 - **Vercel** – Angular frontend
+
+> This repository already ships a GitHub Actions workflow
+> (`.github/workflows/main_getyourdynamicqr-api.yml`) that deploys the backend to
+> Azure Web App on every push to `main`. The backend is live at:
+> `https://getyourdynamicqr-api-c9d2g0dsczfjenc0.francecentral-01.azurewebsites.net`
 
 > You must create your own free accounts at the four services. This guide
 > assumes you start with no accounts. URLs marked `YOUR-...` are placeholders
@@ -96,15 +101,19 @@ npm test
    - **Start Command**: `npm start`     *(runs `tsx src/app.js`)*
    - **Region**: nearest to your users (optional).
 
-5. Add environment variables (**Environment → Environment Variables**):
+5. Add environment variables (on Azure App Service: **Configuration → Application settings**):
 
    | Variable      | Value                                                        |
    |---------------|--------------------------------------------------------------|
    | `DATABASE_URL`| The Neon string from Step 2 **without surrounding quotes**   |
-   | `PORT`        | `10000` (Render sets this itself; the app reads `process.env.PORT`) |
    | `JWT_SECRET`  | A long random string, e.g. from `openssl rand -hex 32`       |
-   | `BASE_URL`    | `https://dynamic-qr-api.onrender.com` (the short link + QR base) |
-   | `CORS_ORIGINS`| `https://your-app.vercel.app` (comma-separated, no spaces)   |
+   | `BASE_URL`    | `https://getyourdynamicqr-api-c9d2g0dsczfjenc0.francecentral-01.azurewebsites.net` |
+   | `CORS_ORIGINS`| Your frontend origin(s), comma-separated, no spaces          |
+
+   `BASE_URL` is what every QR link is built from. If you leave it unset, the
+   app falls back to the Azure `WEBSITE_HOSTNAME` automatically (so QR links are
+   still correct), and in production it fails fast if neither is present —
+   printed QR codes can never silently point at `localhost`.
 
    Optional rate-limiting tuning (defaults are sensible — skip if unsure):
    `RATE_LIMIT_API_MAX` (300/15min), `RATE_LIMIT_AUTH_MAX` (5/15min),
@@ -185,7 +194,8 @@ Add a `vercel.json` in the `frontend/` folder and re-deploy:
 - **Frontend requests get CORS errors** → `CORS_ORIGINS` on Render must contain the exact frontend origin (protocol + host, no trailing slash).
 - **`prisma migrate deploy` fails** → export the Render env vars in the Shell first (`echo $DATABASE_URL`), confirm it points to Neon, then retry.
 - **404 on `/login` refresh** → add `vercel.json` rewrites (Step 4) and redeploy the frontend.
-- **QR image points at `localhost:3000`** → `BASE_URL` on Render is missing/wrong; set it to `https://your-backend.onrender.com` and redeploy.
+- **QR image points at `localhost:3000`** → `BASE_URL` (or Azure `WEBSITE_HOSTNAME`) is missing on the backend; set it to the real backend URL and redeploy.
+- **QR card shows "Needs check"** → run the card's **Verify** button (calls `GET /api/qr/:id/health`) or re-create the QR. A healthy QR passes all four checks: production-safe redirect URL, generated image, reachable redirect endpoint, and redirect resolving to the destination.
 
 ## Security checklist
 

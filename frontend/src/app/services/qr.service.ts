@@ -3,6 +3,19 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API_URL } from './api-url';
 
+export interface QrHealthChecks {
+  noLocalhost: boolean;
+  qrImage: boolean;
+  reachable: boolean;
+  targetMatch: boolean;
+}
+
+export interface QrHealth {
+  ok: boolean;
+  redirectUrl: string;
+  checks: QrHealthChecks;
+}
+
 export interface QrCode {
   id: string;
   userId: string;
@@ -20,6 +33,7 @@ export interface QrCode {
   deletedAt: string | null;
   scanCount?: number;
   qrImage?: string;
+  health?: QrHealth;
 }
 
 export interface ScanEvent {
@@ -99,6 +113,14 @@ export class QrService {
   analytics(id: string): Observable<QrAnalytics> {
     return this.http
       .get<ApiResponse<QrAnalytics>>(`${API_URL}/api/qr/${id}/analytics`)
+      .pipe(map((res) => res.data));
+  }
+
+  health(id: string): Observable<{ redirectUrl: string; qrImage: string | null; health: QrHealth }> {
+    return this.http
+      .get<ApiResponse<{ redirectUrl: string; qrImage: string | null; health: QrHealth }>>(
+        `${API_URL}/api/qr/${id}/health`
+      )
       .pipe(map((res) => res.data));
   }
 }

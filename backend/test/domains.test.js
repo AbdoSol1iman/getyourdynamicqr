@@ -101,7 +101,7 @@ describe("custom domains", () => {
 
     const updated = await api(`/api/qr/${id}`, { token: owned.token });
     assert.equal(updated.status, 200);
-    assert.equal(updated.json.data.redirectUrl, `http://127.0.0.1/q/${shortCode}`);
+    assert.equal(updated.json.data.redirectUrl, `${process.env.BASE_URL.replace(/\/$/, "")}/q/${shortCode}`);
     assert.equal(updated.json.data.domainId, null);
   });
 });

@@ -73,7 +73,36 @@
           </div>
 
           <div class="qr">
-            <app-qr-image [text]="qr.redirectUrl" [size]="150" />
+            <app-qr-image [src]="qr.qrImage ?? null" [text]="qr.redirectUrl" [size]="150" />
+          </div>
+
+          <div class="health-row">
+            @let h = healthFor(qr);
+            @switch (h.type) {
+              @case ('checking') {
+                <span class="health-badge health-checking" role="status">
+                  <span class="mini-spinner" aria-hidden="true"></span>
+                  Checking…
+                </span>
+              }
+              @case ('error') {
+                <span class="health-badge health-fail">{{ h.message }}</span>
+              }
+              @default {
+                @if (h.health.ok) {
+                  <span class="health-badge health-ok" role="status">Verified</span>
+                } @else {
+                  <span
+                    class="health-badge health-fail"
+                    [title]="failedChecks(h.health)"
+                    role="status"
+                  >
+                    Needs check
+                  </span>
+                }
+              }
+            }
+            <button class="btn btn-secondary btn-sm" (click)="verify(qr)">Verify</button>
           </div>
 
           <p class="dest" [title]="qr.destinationUrl">{{ qr.destinationUrl }}</p>

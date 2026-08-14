@@ -1,3 +1,14 @@
-@if (imageUrl()) {
+@if (loading()) {
+  <div class="qr-loading" role="status" aria-label="Generating QR code">
+    <span class="spinner" aria-hidden="true"></span>
+    <span>Generating QR…</span>
+  </div>
+} @else if (error()) {
+  <div class="qr-error" role="alert">
+    <span class="qr-error-icon" aria-hidden="true">⚠</span>
+    <span>{{ error() }}</span>
+    <button type="button" class="btn-retry" (click)="retry()">Retry</button>
+  </div>
+} @else if (imageUrl()) {
   <img [src]="imageUrl()" alt="QR code" />
 }

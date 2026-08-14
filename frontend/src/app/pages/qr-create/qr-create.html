@@ -55,8 +55,33 @@
     <div class="result">
       <h1>QR code created!</h1>
       <div class="qr">
-        <app-qr-image [text]="created.redirectUrl!" [size]="220" />
+        <app-qr-image [src]="created.qrImage ?? null" [text]="created.redirectUrl!" [size]="220" />
       </div>
+
+      @if (created.health) {
+        <div class="health" [class.health-ok]="created.health.ok" [class.health-fail]="!created.health.ok" role="status">
+          <strong>{{ created.health.ok ? 'QR verified' : 'QR needs attention' }}</strong>
+          @if (created.health.ok) {
+            <span>All checks passed. Ready to print and share.</span>
+          } @else {
+            <ul>
+              @if (!created.health.checks.noLocalhost) {
+                <li>Redirect URL must not use localhost in production.</li>
+              }
+              @if (!created.health.checks.qrImage) {
+                <li>QR image could not be generated.</li>
+              }
+              @if (!created.health.checks.reachable) {
+                <li>The redirect endpoint is not reachable.</li>
+              }
+              @if (!created.health.checks.targetMatch) {
+                <li>The redirect does not resolve to the destination URL.</li>
+              }
+            </ul>
+          }
+        </div>
+      }
+
       <p class="meta-title">Redirects to</p>
       <p class="dest">{{ created.destinationUrl }}</p>
       <p class="meta">Short code: <code>{{ created.shortCode }}</code></p>

@@ -73,7 +73,7 @@
 
       <div class="preview">
         <div class="qr-box">
-          <app-qr-image [text]="original.redirectUrl" [size]="200" />
+          <app-qr-image [src]="original.qrImage ?? null" [text]="original.redirectUrl" [size]="200" />
         </div>
         <p class="meta">This QR stays the same.</p>
       </div>
