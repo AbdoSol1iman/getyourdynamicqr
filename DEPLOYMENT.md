@@ -128,8 +128,10 @@ npm test
    Plans (WePay / Telda): plan-upgrade payments go to the wallet accounts in
    `backend/src/config/payments.js` (overridable with `WEPAY_ACCOUNT` for the
    WePay mobile number and `TELDA_ACCOUNT` for the Telda @username — e.g. set
-   `WEPAY_ACCOUNT=01557886491`, `TELDA_ACCOUNT=@abdo2388`). Plans are FREE / PRO
-   / ENTERPRISE with QR-count and custom-domain limits enforced server-side.
+   `WEPAY_ACCOUNT=01557886491`, `TELDA_ACCOUNT=@abdo2388`). Plans are FREE /
+   STARTER / PRO / BUSINESS / AGENCY (prices in `backend/src/config/plans.js`)
+   with QR-count and custom-domain limits enforced server-side; legacy
+   ENTERPRISE rows behave like AGENCY.
 
    **How upgrades work (manual review):** a customer pays the wallet account,
    then submits the transaction reference shown in their WePay/Telda app. This

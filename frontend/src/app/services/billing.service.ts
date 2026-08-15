@@ -7,8 +7,10 @@ export interface PlanInfo {
   planType: string;
   label: string;
   monthlyPriceEGP: number;
+  monthlyPriceUSD?: number;
   maxQrs: number | 'unlimited';
   customDomains: boolean;
+  popular?: boolean;
   features: string[];
 }
 

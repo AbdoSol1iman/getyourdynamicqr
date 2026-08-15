@@ -28,6 +28,24 @@
   background: var(--color-muted);
 }
 
+.plan-card.popular {
+  border: 2px solid var(--color-accent);
+  background: var(--color-surface);
+}
+
+.popular-tag {
+  align-self: flex-start;
+  margin: -var(--space-lg) 0 var(--space-sm);
+  padding: 4px 12px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .plan-card ul {
   flex: 1;
   margin: var(--space-md) 0 var(--space-lg);

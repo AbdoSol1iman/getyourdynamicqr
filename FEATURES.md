@@ -110,12 +110,15 @@ Files: `services/domains.service.js`, `controllers/domains.controller.js`, `rout
 
 ## 6. Backend — Plans & InstaPay Billing
 
-> Stripe is intentionally not used because it is unavailable in Egypt; payments use **InstaPay**.
+> Stripe is intentionally not used because it is unavailable in Egypt; payments use **WePay / Telda**.
 
-- **Plans**
+- **Plans** (prices in EGP, see `backend/src/config/plans.js`)
   - `FREE` — 3 QR codes, no custom domains, EGP 0.
-  - `PRO` — 50 QR codes, custom domains, EGP 250/month.
-  - `ENTERPRISE` — unlimited QR codes, custom domains, EGP 1000/month.
+  - `STARTER` — 10 QR codes, no custom domains, EGP 250/month.
+  - `PRO` — 50 QR codes, custom domains, advanced analytics, EGP 500/month (Most Popular).
+  - `BUSINESS` — 250 QR codes, 5 team members, API/webhooks, EGP 1200/month.
+  - `AGENCY` — unlimited QR codes, white-label, teams/clients, EGP 3000/month.
+  - `ENTERPRISE` is kept as a compatibility alias for legacy rows; it behaves like AGENCY.
   - Limits are enforced server-side when creating QR codes / custom domains (`403`).
 - **InstaPay payment flow**
   1. `POST /api/billing/instapay { planType }` → creates a payment order with a unique
