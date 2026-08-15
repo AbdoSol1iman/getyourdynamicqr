@@ -19,7 +19,8 @@ model User {
   email        String   @unique
   passwordHash String
   planType     String   @default("FREE")
-  role String @default("USER")
+  role         String   @default("USER")
+  isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

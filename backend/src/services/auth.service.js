@@ -62,6 +62,12 @@ export async function loginUser(email, password) {
     throw err;
   }
 
+  if (!user.isActive) {
+    const err = new Error("This account has been disabled. Contact support.");
+    err.status = 403;
+    throw err;
+  }
+
   const token = signToken(user.id);
 
   return {

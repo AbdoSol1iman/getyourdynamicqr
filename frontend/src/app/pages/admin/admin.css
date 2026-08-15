@@ -8,6 +8,34 @@
   max-width: 960px;
 }
 
+.tabs {
+  display: inline-flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.success {
+  margin-bottom: var(--space-md);
+}
+
+.row-disabled {
+  opacity: 0.55;
+}
+
+td .btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+th,
+td {
+  vertical-align: middle;
+}
+
+.badge.inactive {
+  font-family: var(--font-mono);
+}
+
 .filters {
   display: inline-flex;
   flex-wrap: wrap;

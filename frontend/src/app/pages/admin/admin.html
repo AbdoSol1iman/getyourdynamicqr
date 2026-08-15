@@ -1,6 +1,13 @@
 <div class="topbar">
   <div class="brand">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
       <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
@@ -15,91 +22,215 @@
 <main class="container">
   <div class="page-head">
     <div>
-      <h1>Payment review</h1>
-      <p class="subtitle">
-        Customers see "we'll verify your transfer" until you confirm the money really arrived and
-        approve the plan upgrade.
-      </p>
+      <h1>Admin</h1>
+      <p class="subtitle">Confirm manual payments and manage customer accounts.</p>
     </div>
   </div>
 
-  <div class="filters" role="tablist" aria-label="Payment status">
-    @for (f of ['SUBMITTED', 'PENDING', 'PAID', 'ALL']; track f) {
-      <button
-        class="filter"
-        [class.active]="filter() === f"
-        role="tab"
-        [attr.aria-selected]="filter() === f"
-        (click)="load(f)"
-      >
-        {{ f }}
-      </button>
-    }
+  <div class="tabs" role="tablist" aria-label="Admin sections">
+    <button
+      class="filter"
+      [class.active]="tab() === 'payments'"
+      role="tab"
+      [attr.aria-selected]="tab() === 'payments'"
+      (click)="setTab('payments')"
+    >
+      Payment requests
+    </button>
+    <button
+      class="filter"
+      [class.active]="tab() === 'users'"
+      role="tab"
+      [attr.aria-selected]="tab() === 'users'"
+      (click)="setTab('users')"
+    >
+      Users
+    </button>
   </div>
 
-  @if (loading()) {
-    <div class="loading-row" role="status">
-      <span class="spinner" aria-hidden="true"></span>
-      Loading payments...
-    </div>
-  } @else if (error()) {
+  @if (savedFlash()) {
+    <p class="success" role="status">{{ savedFlash() }}</p>
+  }
+
+  @if (actionError() && tab() === 'payments') {
+    <p class="error" role="alert">{{ actionError() }}</p>
+  }
+  @if (usersError() && tab() === 'users') {
     <p class="error" role="alert">
-      {{ error() }}
-      <button class="link" (click)="load()">Retry</button>
+      {{ usersError() }}
+      <button class="link" (click)="loadUsers()">Retry</button>
     </p>
-  } @else if (payments().length === 0) {
-    <p class="muted">No payments in this view.</p>
-  } @else {
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Customer</th>
-            <th>Plan</th>
-            <th>Amount</th>
-            <th>Reference</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (p of payments(); track p.id) {
-            <tr>
-              <td>
-                <span class="email">{{ p.email }}</span>
-                @if (p.externalRef) {
-                  <span class="extref" title="Customer's submitted transaction reference">
-                    {{ p.externalRef }}
-                  </span>
-                }
-              </td>
-              <td>{{ p.planType }}</td>
-              <td class="num">EGP {{ p.amountEGP }}</td>
-              <td><code>{{ p.reference }}</code></td>
-              <td>{{ p.method }}</td>
-              <td>
-                <span class="badge" [class.pending]="p.status === 'SUBMITTED'">
-                  {{ p.status }}
-                </span>
-              </td>
-              <td>{{ p.createdAt | date: 'medium' }}</td>
-              <td class="right">
-                @if (p.status === 'SUBMITTED') {
-                  <button class="btn btn-accent" (click)="approve(p)">Approve &amp; upgrade</button>
-                } @else {
-                  <span class="muted">{{ p.paidAt ? 'Paid' : '—' }}</span>
-                }
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+  }
+
+  @if (tab() === 'payments') {
+    <div class="filters" role="tablist" aria-label="Payment status">
+      @for (f of ['SUBMITTED', 'PENDING', 'PAID', 'ALL']; track f) {
+        <button
+          class="filter"
+          [class.active]="filter() === f"
+          role="tab"
+          [attr.aria-selected]="filter() === f"
+          (click)="loadPayments(f)"
+        >
+          {{ f }}
+        </button>
+      }
     </div>
 
-    @if (actionError()) {
-      <p class="error" role="alert">{{ actionError() }}</p>
+    @if (paymentsLoading()) {
+      <div class="loading-row" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Loading payments...
+      </div>
+    } @else if (paymentsError()) {
+      <p class="error" role="alert">
+        {{ paymentsError() }}
+        <button class="link" (click)="loadPayments()">Retry</button>
+      </p>
+    } @else if (payments().length === 0) {
+      <p class="muted">No payments in this view.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Reference</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of payments(); track p.id) {
+              <tr>
+                <td>
+                  <span class="email">{{ p.email }}</span>
+                  @if (p.externalRef) {
+                    <span class="extref" title="Customer's submitted transaction reference">
+                      {{ p.externalRef }}
+                    </span>
+                  }
+                </td>
+                <td>{{ p.planType }}</td>
+                <td class="num">EGP {{ p.amountEGP }}</td>
+                <td>
+                  <code>{{ p.reference }}</code>
+                </td>
+                <td>{{ p.method }}</td>
+                <td>
+                  <span class="badge" [class.pending]="p.status === 'SUBMITTED'">
+                    {{ p.status }}
+                  </span>
+                </td>
+                <td>{{ p.createdAt | date: 'medium' }}</td>
+                <td class="right">
+                  @if (p.status === 'SUBMITTED') {
+                    <button
+                      class="btn btn-accent btn-sm"
+                      [disabled]="approveBusy() === p.id"
+                      (click)="approve(p)"
+                    >
+                      {{ approveBusy() === p.id ? 'Approving…' : 'Approve &amp; upgrade' }}
+                    </button>
+                  } @else {
+                    <span class="muted">{{ p.paidAt ? 'Paid' : '—' }}</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+
+  @if (tab() === 'users') {
+    @if (usersLoading()) {
+      <div class="loading-row" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        Loading users...
+      </div>
+    } @else if (usersError()) {
+      <p class="error" role="alert">
+        {{ usersError() }}
+        <button class="link" (click)="loadUsers()">Retry</button>
+      </p>
+    } @else if (users().length === 0) {
+      <p class="muted">No users yet.</p>
+    } @else {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Plan</th>
+              <th>Role</th>
+              <th>QRs</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of users(); track u.id) {
+              <tr [class.row-disabled]="!u.isActive">
+                <td>
+                  <span class="email">{{ u.email }}</span>
+                  @if (u.role === 'ADMIN') {
+                    <span class="extref">admin</span>
+                  }
+                </td>
+                <td>
+                  <select
+                    [disabled]="updatingId() === u.id"
+                    [value]="u.planType"
+                    (change)="setPlan(u, $any($event.target).value)"
+                  >
+                    @for (p of plans(); track p.planType) {
+                      <option [value]="p.planType">{{ p.label }}</option>
+                    }
+                    @if (!plans().some((p) => p.planType === u.planType)) {
+                      <option [value]="u.planType">{{ u.planType }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    [disabled]="updatingId() === u.id"
+                    (click)="toggleRole(u)"
+                  >
+                    {{ u.role }}
+                  </button>
+                </td>
+                <td class="num">{{ u.qrCount }}</td>
+                <td>
+                  <span class="badge" [class.inactive]="!u.isActive">
+                    {{ u.isActive ? 'Active' : 'Disabled' }}
+                  </span>
+                </td>
+                <td>{{ u.createdAt | date: 'mediumDate' }}</td>
+                <td class="right">
+                  <button
+                    class="btn btn-danger btn-sm"
+                    [disabled]="updatingId() === u.id"
+                    (click)="toggleActive(u)"
+                  >
+                    {{ u.isActive ? 'Disable' : 'Enable' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">
+        Changing a plan manually upgrades or downgrades immediately. You cannot demote the last
+        admin or disable your own account.
+      </p>
     }
   }
 </main>

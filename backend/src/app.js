@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes.js";
 import qrRoutes from "./routes/qr.routes.js";
 import domainRoutes from "./routes/domains.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import redirectRoutes from "./routes/redirect.routes.js";
 import { authenticate } from "./middleware/auth.middleware.js";
 import { apiLimiter } from "./middleware/rateLimit.js";
@@ -71,6 +72,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/domains", domainRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/q", redirectRoutes);
 
 // Protected route used to verify the auth middleware works end-to-end.
