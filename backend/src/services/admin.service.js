@@ -1,7 +1,14 @@
 import { prisma } from "../prisma.js";
-import { PLANS, PLAN_ORDER } from "../config/plans.js";
+import { PLAN_ORDER } from "../config/plans.js";
 
-const VALID_ROLES = ["USER", "ADMIN"];
+const VALID_ROLES = new Set(["USER", "ADMIN"]);
+const VALID_PLANS = new Set([...PLAN_ORDER, "ENTERPRISE"]);
+
+function fail(message, status) {
+  const err = new Error(message);
+  err.status = status;
+  return err;
+}
 
 function toPublicUser(u) {
   return {
@@ -24,68 +31,51 @@ export async function listUsers() {
   return users.map(toPublicUser);
 }
 
-// Owner-only: change a user's plan, role, or active flag.
-// We never allow removing the last admin or disabling your own account
-// (that would lock the owner out of the dashboard).
-export async function updateUser(actorUserId, targetUserId, changes) {
-  const { planType, role, isActive } = changes ?? {};
-
-  const target = await prisma.user.findUnique({ where: { id: targetUserId } });
-  if (!target) {
-    const err = new Error("User not found");
-    err.status = 404;
-    throw err;
+async function requireNotLastAdmin(target, role) {
+  if (target.role !== "ADMIN" || role === "ADMIN") return;
+  const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+  if (adminCount <= 1) {
+    throw fail("Cannot remove the last admin", 400);
   }
+}
 
+function buildChanges(changes, actorUserId, targetUserId) {
+  const { planType, role, isActive } = changes ?? {};
   const data = {};
 
   if (planType !== undefined) {
-    const planKeys = new Set([...PLAN_ORDER, "ENTERPRISE"]);
-    if (!planKeys.has(planType)) {
-      const err = new Error("Unknown plan");
-      err.status = 400;
-      throw err;
-    }
+    if (!VALID_PLANS.has(planType)) throw fail("Unknown plan", 400);
     data.planType = planType;
   }
 
   if (role !== undefined) {
-    if (!VALID_ROLES.includes(role)) {
-      const err = new Error("Role must be USER or ADMIN");
-      err.status = 400;
-      throw err;
-    }
-    // Refuse to demote the last remaining admin.
-    if (target.role === "ADMIN" && role !== "ADMIN") {
-      const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
-      if (adminCount <= 1) {
-        const err = new Error("Cannot remove the last admin");
-        err.status = 400;
-        throw err;
-      }
-    }
+    if (!VALID_ROLES.has(role)) throw fail("Role must be USER or ADMIN", 400);
     data.role = role;
   }
 
   if (isActive !== undefined) {
-    if (typeof isActive !== "boolean") {
-      const err = new Error("isActive must be a boolean");
-      err.status = 400;
-      throw err;
-    }
+    if (typeof isActive !== "boolean") throw fail("isActive must be a boolean", 400);
     if (targetUserId === actorUserId && isActive === false) {
-      const err = new Error("You cannot disable your own account");
-      err.status = 400;
-      throw err;
+      throw fail("You cannot disable your own account", 400);
     }
     data.isActive = isActive;
   }
 
-  if (Object.keys(data).length === 0) {
-    const err = new Error("Nothing to update");
-    err.status = 400;
-    throw err;
-  }
+  if (Object.keys(data).length === 0) throw fail("Nothing to update", 400);
+  return data;
+}
+
+// Owner-only: change a user's plan, role, or active flag.
+// We never allow removing the last admin or disabling your own account
+// (that would lock the owner out of the dashboard).
+export async function updateUser(actorUserId, targetUserId, changes) {
+  const target = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!target) throw fail("User not found", 404);
+
+  const { role } = changes ?? {};
+  await requireNotLastAdmin(target, role);
+
+  const data = buildChanges(changes, actorUserId, targetUserId);
 
   const updated = await prisma.user.update({
     where: { id: targetUserId },
