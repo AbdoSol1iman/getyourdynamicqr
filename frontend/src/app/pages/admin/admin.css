@@ -1,0 +1,61 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--color-background);
+}
+
+.container {
+  max-width: 960px;
+}
+
+.filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.filter {
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--speed-fast) var(--ease),
+    color var(--speed-fast) var(--ease);
+}
+
+.filter:hover {
+  color: var(--color-primary);
+}
+
+.filter.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+td.right {
+  text-align: right;
+}
+
+.email {
+  display: block;
+  font-weight: 500;
+}
+
+.extref {
+  display: block;
+  color: var(--color-text-faint);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.badge.pending {
+  font-family: var(--font-mono);
+}

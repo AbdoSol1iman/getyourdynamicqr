@@ -27,6 +27,10 @@ export class Dashboard implements OnInit {
   readonly planLabel = signal('');
   readonly email = this.auth.currentUser()?.email ?? '';
 
+  isAdmin(): boolean {
+    return this.auth.currentUser()?.role === 'ADMIN';
+  }
+
   ngOnInit(): void {
     this.load();
   }

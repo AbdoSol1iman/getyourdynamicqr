@@ -19,6 +19,9 @@
   <div class="page-head">
     <h1>My QR codes</h1>
     <div class="header-actions">
+      @if (isAdmin()) {
+        <a class="btn" routerLink="/admin">Payment review</a>
+      }
       <a class="btn" routerLink="/plans">Plan: {{ planLabel() || '…' }}</a>
       <a class="btn" routerLink="/domains">Custom domains</a>
       <a class="btn btn-accent" routerLink="/qr/create">New QR code</a>

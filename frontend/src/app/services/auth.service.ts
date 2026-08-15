@@ -7,6 +7,7 @@ export interface User {
   id: string;
   email: string;
   planType: string;
+  role?: string;
 }
 
 export interface AuthResponse {
