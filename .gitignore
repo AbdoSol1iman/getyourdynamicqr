@@ -18,6 +18,4 @@ generated/
 .agents/
 skills-lock.json
 
-# Legacy root vercel.json (monorepo services config) — the frontend deploys
-# through the Vercel git integration rooted at /frontend, so this is unused.
-/vercel.json
+
