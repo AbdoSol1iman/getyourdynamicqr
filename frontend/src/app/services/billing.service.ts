@@ -21,10 +21,19 @@ export interface PaymentMethod {
   kind: string;
 }
 
+export interface DeclinedPayment {
+  paymentId: string;
+  planType: string;
+  amountEGP: number;
+  reference: string;
+  reason: string | null;
+}
+
 export interface BillingState {
   current: PlanInfo;
   plans: PlanInfo[];
   methods: PaymentMethod[];
+  declined: DeclinedPayment | null;
 }
 
 export interface Payment {
@@ -53,6 +62,7 @@ export interface ReviewPayment {
   method: string;
   externalRef: string | null;
   status: string;
+  declineReason: string | null;
   createdAt: string;
   paidAt: string | null;
 }
@@ -113,6 +123,21 @@ export class BillingService {
         `${API_URL}/api/billing/payments/${paymentId}/approve`,
         {},
       )
+      .pipe(map((res) => res.data));
+  }
+
+  decline(paymentId: string, reason: string): Observable<{ status: string }> {
+    return this.http
+      .post<ApiResponse<{ status: string }>>(
+        `${API_URL}/api/billing/payments/${paymentId}/decline`,
+        { reason },
+      )
+      .pipe(map((res) => res.data));
+  }
+
+  resubmit(paymentId: string, externalRef: string): Observable<SubmitResult> {
+    return this.http
+      .post<ApiResponse<SubmitResult>>(`${API_URL}/api/billing/resubmit`, { paymentId, externalRef })
       .pipe(map((res) => res.data));
   }
 

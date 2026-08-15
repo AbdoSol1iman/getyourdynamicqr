@@ -27,6 +27,11 @@ td .btn-sm {
   font-size: 12px;
 }
 
+.row-actions {
+  display: inline-flex;
+  gap: var(--space-xs);
+}
+
 th,
 td {
   vertical-align: middle;
