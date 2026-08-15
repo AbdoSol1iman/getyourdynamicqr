@@ -1,6 +1,6 @@
 import QRCode from "qrcode";
 import { prisma } from "../prisma.js";
-import { PLANS, getPlan, getPlanSummary } from "../config/plans.js";
+import { PLANS, PLAN_ORDER, getPlan, getPlanSummary } from "../config/plans.js";
 import {
   getPaymentMethod,
   listPaymentMethods,
@@ -23,11 +23,14 @@ export async function getPlanState(userId) {
   const planType = await getUserPlanType(userId);
   return {
     current: { planType, ...getPlanSummary(planType) },
-    plans: Object.entries(PLANS).map(([planType, plan]) => ({
-      planType,
-      ...plan,
-      maxQrs: plan.maxQrs === Infinity ? "unlimited" : plan.maxQrs,
-    })),
+    plans: PLAN_ORDER.map((key) => {
+      const plan = PLANS[key];
+      return {
+        planType: key,
+        ...plan,
+        maxQrs: plan.maxQrs === Infinity ? "unlimited" : plan.maxQrs,
+      };
+    }),
     methods: listPaymentMethods(),
   };
 }

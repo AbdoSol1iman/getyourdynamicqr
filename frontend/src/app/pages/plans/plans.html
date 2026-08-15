@@ -43,7 +43,10 @@
 
     <div class="plans">
       @for (plan of state()!.plans; track plan.planType) {
-        <div class="plan-card" [class.current]="plan.planType === state()!.current.planType">
+        <div class="plan-card" [class.current]="plan.planType === state()!.current.planType" [class.popular]="plan.popular">
+          @if (plan.popular) {
+            <span class="popular-tag">Most Popular</span>
+          }
           <h3>{{ plan.label }}</h3>
           <div class="price">
             @if (plan.monthlyPriceEGP === 0) {

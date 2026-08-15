@@ -15,9 +15,9 @@ describe("billing & plans", () => {
       const res = await api("/api/billing/plan", { token });
       assert.equal(res.status, 200);
       assert.equal(res.json.data.current.planType, "FREE");
-      assert.equal(res.json.data.plans.length, 3);
+      assert.equal(res.json.data.plans.length, 5);
       const types = res.json.data.plans.map((p) => p.planType);
-      assert.deepEqual(types.sort(), ["ENTERPRISE", "FREE", "PRO"]);
+      assert.deepEqual(types, ["FREE", "STARTER", "PRO", "BUSINESS", "AGENCY"]);
       const methodIds = res.json.data.methods.map((m) => m.id).sort();
       assert.deepEqual(methodIds, ["TELDA", "WEPAY"]);
     });
@@ -45,7 +45,7 @@ describe("billing & plans", () => {
       assert.ok(payment.reference.startsWith("DQR-"));
       assert.equal(payment.paymentId && typeof payment.paymentId, "string");
       assert.equal(payment.planType, "PRO");
-      assert.equal(payment.amountEGP, 250);
+      assert.equal(payment.amountEGP, 500);
       assert.equal(payment.method, "WEPAY");
       assert.equal(typeof payment.account, "string"); // exposed for the pay instructions
       assert.match(payment.payText, /reference DQR-/);
