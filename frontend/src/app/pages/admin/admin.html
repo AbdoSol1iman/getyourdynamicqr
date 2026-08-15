@@ -44,7 +44,7 @@
     </div>
   } @else if (error()) {
     <p class="error" role="alert">
-      {{ error }}
+      {{ error() }}
       <button class="link" (click)="load()">Retry</button>
     </p>
   } @else if (payments().length === 0) {
