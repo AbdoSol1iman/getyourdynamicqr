@@ -12,19 +12,27 @@ export interface PlanInfo {
   features: string[];
 }
 
+export interface PaymentMethod {
+  id: string;
+  label: string;
+  account: string;
+  kind: string;
+}
+
 export interface BillingState {
   current: PlanInfo;
   plans: PlanInfo[];
-  wallet: string;
+  methods: PaymentMethod[];
 }
 
-export interface InstaPayPayment {
+export interface Payment {
   paymentId: string;
   reference: string;
   amountEGP: number;
   planType: string;
   planLabel: string;
-  wallet: string;
+  method: string;
+  account: string;
   payText: string;
 }
 
@@ -48,15 +56,15 @@ export class BillingService {
       .pipe(map((res) => res.data));
   }
 
-  createInstapay(planType: string): Observable<InstaPayPayment> {
+  createPayment(planType: string, method: string): Observable<Payment> {
     return this.http
-      .post<ApiResponse<InstaPayPayment>>(`${API_URL}/api/billing/instapay`, { planType })
+      .post<ApiResponse<Payment>>(`${API_URL}/api/billing/pay`, { planType, method })
       .pipe(map((res) => res.data));
   }
 
-  confirm(paymentId: string, instapayRef: string): Observable<ConfirmResult> {
+  confirm(paymentId: string, externalRef: string): Observable<ConfirmResult> {
     return this.http
-      .post<ApiResponse<ConfirmResult>>(`${API_URL}/api/billing/confirm`, { paymentId, instapayRef })
+      .post<ApiResponse<ConfirmResult>>(`${API_URL}/api/billing/confirm`, { paymentId, externalRef })
       .pipe(map((res) => res.data));
   }
 }

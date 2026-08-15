@@ -52,6 +52,16 @@
   width: 100%;
 }
 
+.pay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.pay-actions .btn {
+  flex: 1 1 120px;
+}
+
 .price {
   margin-top: var(--space-sm);
   color: var(--color-text);

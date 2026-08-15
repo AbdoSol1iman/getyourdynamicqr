@@ -1,14 +1,14 @@
 import { prisma } from "../prisma.js";
 import { PLANS, getPlan, getPlanSummary } from "../config/plans.js";
 import {
+  getPaymentMethod,
+  listPaymentMethods,
+} from "../config/payments.js";
+import {
   generatePaymentReference,
-  isPlausibleInstaPayRef,
-  buildPaymentQrText,
-} from "../utils/instapay.js";
-
-// Wallet the customer pays into. Placeholder until you set the real one in
-// backend/.env (INSTAPAY_WALLET).
-const WALLET = process.env.INSTAPAY_WALLET || "";
+  isPlausibleReference,
+  buildPayQrText,
+} from "../utils/payment.js";
 
 export async function getUserPlanType(userId) {
   const user = await prisma.user.findUnique({
@@ -27,15 +27,22 @@ export async function getPlanState(userId) {
       ...plan,
       maxQrs: plan.maxQrs === Infinity ? "unlimited" : plan.maxQrs,
     })),
-    wallet: WALLET,
+    methods: listPaymentMethods(),
   };
 }
 
-// Creates a PENDING InstaPay payment for the given plan and returns everything
-// the frontend needs to show the pay instructions.
-export async function createInstapayPayment(userId, planType) {
+// Creates a PENDING payment for the given plan and method and returns
+// everything the frontend needs to show the pay instructions.
+export async function createPayment(userId, planType, methodId) {
   if (!PLANS[planType] || planType === "FREE") {
     const err = new Error("Choose a paid plan to upgrade to");
+    err.status = 400;
+    throw err;
+  }
+
+  const method = getPaymentMethod(methodId);
+  if (!method) {
+    const err = new Error("Choose a payment method");
     err.status = 400;
     throw err;
   }
@@ -51,7 +58,13 @@ export async function createInstapayPayment(userId, planType) {
   const plan = getPlan(planType);
 
   const payment = await prisma.payment.create({
-    data: { userId, planType, amountEGP: plan.monthlyPriceEGP, reference },
+    data: {
+      userId,
+      planType,
+      amountEGP: plan.monthlyPriceEGP,
+      reference,
+      method: method.id,
+    },
   });
 
   return {
@@ -60,9 +73,10 @@ export async function createInstapayPayment(userId, planType) {
     amountEGP: payment.amountEGP,
     planType: payment.planType,
     planLabel: plan.label,
-    wallet: WALLET,
-    payText: buildPaymentQrText({
-      wallet: WALLET,
+    method: method.id,
+    account: method.account,
+    payText: buildPayQrText({
+      method,
       amountEGP: payment.amountEGP,
       reference: payment.reference,
     }),
@@ -70,11 +84,11 @@ export async function createInstapayPayment(userId, planType) {
 }
 
 // Marks a payment as PAID and upgrades the user's plan. MVP self-served flow:
-// the user proves payment by entering the InstaPay transaction reference shown
-// in their banking app. (A real shop would reconcile with the bank first.)
-export async function confirmInstapayPayment(userId, paymentId, instapayRef) {
-  if (!isPlausibleInstaPayRef(instapayRef)) {
-    const err = new Error("Enter the reference you see in your InstaPay transaction");
+// the user proves payment by entering the transaction reference shown in their
+// wallet app. (A real shop would reconcile with the provider first.)
+export async function confirmPayment(userId, paymentId, externalRef) {
+  if (!isPlausibleReference(externalRef)) {
+    const err = new Error("Enter the reference you see in your payment app");
     err.status = 400;
     throw err;
   }
@@ -98,7 +112,7 @@ export async function confirmInstapayPayment(userId, paymentId, instapayRef) {
   await Promise.all([
     prisma.payment.update({
       where: { id: payment.id },
-      data: { status: "PAID", instapayRef, paidAt: new Date() },
+      data: { status: "PAID", externalRef, paidAt: new Date() },
     }),
     prisma.user.update({
       where: { id: userId },

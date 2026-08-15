@@ -76,8 +76,8 @@ npm test
 - `pretest` auto-creates `dynamic_qr_test` (if your Postgres role has
   `CREATEDB`) and applies all migrations to it.
 - The suite covers auth, QR lifecycle + plan limits, the redirect engine on
-  both default and custom hosts, analytics, custom domains, InstaPay billing,
-  and rate limiting.
+  both default and custom hosts, analytics, custom domains, wallet billing
+  (WePay / Telda), and rate limiting.
 
 ## Step 2 – Create the Neon Postgres database
 
@@ -125,11 +125,14 @@ npm test
    accept live domains). Users must point their domain's DNS at the backend
    (e.g. a CNAME to `dynamic-qr-api.onrender.com`) for redirects to resolve.
 
-   Plans (InstaPay): set `INSTAPAY_WALLET` to your InstaPay mobile number
-   (`01XXXXXXXXX`) for plan-upgrade payments. Plans are FREE / PRO / ENTERPRISE
-   with QR-count and custom-domain limits enforced server-side. Payment
-   confirmation is a self-served MVP flow (user enters their InstaPay
-   transaction reference) — reconcile against your bank before going fully live.
+   Plans (WePay / Telda): plan-upgrade payments go to the wallet accounts in
+   `backend/src/config/payments.js` (overridable with `WEPAY_ACCOUNT` for the
+   WePay mobile number and `TELDA_ACCOUNT` for the Telda @username — e.g. set
+   `WEPAY_ACCOUNT=01557886491`, `TELDA_ACCOUNT=@abdo2388`). Plans are FREE / PRO
+   / ENTERPRISE with QR-count and custom-domain limits enforced server-side.
+   Payment confirmation is a self-served MVP flow (user enters the transaction
+   reference shown in their WePay/Telda app) — reconcile against your wallet
+   before going fully live.
 
 6. Click **Create Web Service**. Wait for the first deployment to finish.
 7. **Apply the database migrations once** (a one-time step, after the service is live):

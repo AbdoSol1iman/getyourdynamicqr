@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BillingService, BillingState, InstaPayPayment } from '../../services/billing.service';
+import { BillingService, BillingState, Payment } from '../../services/billing.service';
 import { QrImageComponent } from '../../components/qr-image/qr-image';
 
 @Component({
@@ -17,9 +17,9 @@ export class PlansPage implements OnInit {
   readonly error = signal('');
   readonly state = signal<BillingState | null>(null);
 
-  // Active InstaPay payment being paid (shown as a panel).
-  readonly payment = signal<InstaPayPayment | null>(null);
-  instapayRef = '';
+  // Active payment being paid (shown as a panel).
+  readonly payment = signal<Payment | null>(null);
+  externalRef = '';
   payError = '';
   paidMessage = '';
   paying = false;
@@ -42,13 +42,25 @@ export class PlansPage implements OnInit {
     });
   }
 
-  selectPlan(planType: string): void {
+  currentMethod(): string {
+    return this.payment()?.method ?? '';
+  }
+
+  methodInfo(): { id: string; label: string; account: string } | null {
+    const p = this.payment();
+    const s = this.state();
+    if (!p || !s) return null;
+    const m = s.methods.find((m) => m.id === p.method);
+    return m ?? { id: p.method, label: p.method, account: p.account };
+  }
+
+  startPayment(planType: string, method: string): void {
     this.payError = '';
     this.paidMessage = '';
-    this.billing.createInstapay(planType).subscribe({
+    this.billing.createPayment(planType, method).subscribe({
       next: (payment) => {
         this.payment.set(payment);
-        this.instapayRef = '';
+        this.externalRef = '';
       },
       error: (err) => (this.payError = err?.error?.message ?? 'Could not start payment'),
     });
@@ -61,11 +73,11 @@ export class PlansPage implements OnInit {
 
   confirmPayment(): void {
     const p = this.payment();
-    if (!p || !this.instapayRef.trim()) return;
+    if (!p || !this.externalRef.trim()) return;
     this.paying = true;
     this.payError = '';
 
-    this.billing.confirm(p.paymentId, this.instapayRef.trim()).subscribe({
+    this.billing.confirm(p.paymentId, this.externalRef.trim()).subscribe({
       next: (result) => {
         this.paying = false;
         this.paidMessage = `Done! You're now on the ${result.plan.label} plan.`;

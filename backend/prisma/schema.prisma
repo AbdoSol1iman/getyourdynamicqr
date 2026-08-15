@@ -71,19 +71,20 @@ model CustomDomain {
 }
 
 // ------------------------------------------------------------------
-// INSTAPAY PAYMENTS
+// PAYMENTS
 // ------------------------------------------------------------------
-// A one-time order created when a user chooses to pay for a plan via
-// InstaPay. The user pays the wallet number with the unique reference, then
-// submits the InstaPay transaction reference to confirm (MVP: self-served
-// confirmation; a real shop would reconcile via the bank before upgrading).
+// A one-time order created when a user chooses to pay for a plan via a wallet
+// (WePay / Telda). The user pays the method's account with the unique
+// reference, then submits the app's transaction reference to confirm (MVP:
+// self-served confirmation; a real shop would reconcile via the provider).
 model Payment {
   id          String   @id @default(cuid())
   userId      String
   planType    String
   amountEGP   Int
   reference   String   @unique
-  instapayRef String?
+  method      String   @default("WEPAY") // WEPAY | TELDA
+  externalRef String?
   status      String   @default("PENDING") // PENDING | PAID
   createdAt   DateTime @default(now())
   paidAt      DateTime?
