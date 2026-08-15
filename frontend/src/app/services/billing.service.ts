@@ -37,9 +37,22 @@ export interface Payment {
   qrImage: string | null;
 }
 
-export interface ConfirmResult {
+export interface SubmitResult {
+  status: string;
+  message: string;
+}
+
+export interface ReviewPayment {
+  id: string;
+  email: string;
   planType: string;
-  plan: PlanInfo;
+  amountEGP: number;
+  reference: string;
+  method: string;
+  externalRef: string | null;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
 }
 
 interface ApiResponse<T> {
@@ -63,9 +76,25 @@ export class BillingService {
       .pipe(map((res) => res.data));
   }
 
-  confirm(paymentId: string, externalRef: string): Observable<ConfirmResult> {
+  submit(paymentId: string, externalRef: string): Observable<SubmitResult> {
     return this.http
-      .post<ApiResponse<ConfirmResult>>(`${API_URL}/api/billing/confirm`, { paymentId, externalRef })
+      .post<ApiResponse<SubmitResult>>(`${API_URL}/api/billing/submit`, { paymentId, externalRef })
+      .pipe(map((res) => res.data));
+  }
+
+  listPayments(status?: string): Observable<ReviewPayment[]> {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.http
+      .get<ApiResponse<ReviewPayment[]>>(`${API_URL}/api/billing/payments${q}`)
+      .pipe(map((res) => res.data));
+  }
+
+  approve(paymentId: string): Observable<{ planType: string }> {
+    return this.http
+      .post<ApiResponse<{ planType: string }>>(
+        `${API_URL}/api/billing/payments/${paymentId}/approve`,
+        {}
+      )
       .pipe(map((res) => res.data));
   }
 }

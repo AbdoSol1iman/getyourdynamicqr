@@ -77,7 +77,7 @@ export async function createPayment(userId, planType, methodId) {
   // The pay QR encodes the payment instructions (same pattern as dashboard
   // QRs, which ship a backend-generated image). Best-effort: if generation
   // fails we still return the payment so the text instructions work.
-  const qrImage = await QRCode.toDataURL(payText);
+  const qrImage = await QRCode.toDataURL(payText).catch(() => null);
   const payImage =
     typeof qrImage === "string" && qrImage.startsWith("data:image/png;base64,")
       ? qrImage
@@ -96,12 +96,13 @@ export async function createPayment(userId, planType, methodId) {
   };
 }
 
-// Marks a payment as PAID and upgrades the user's plan. MVP self-served flow:
-// the user proves payment by entering the transaction reference shown in their
-// wallet app. (A real shop would reconcile with the provider first.)
-export async function confirmPayment(userId, paymentId, externalRef) {
+// Marks a payment as SUBMITTED after the user completes a transfer and enters
+// the transaction reference from their wallet app. The plan is NOT upgraded
+// here — a real human (the owner) verifies the money actually arrived and
+// approves the payment before the plan changes.
+export async function submitPaymentForReview(userId, paymentId, externalRef) {
   if (!isPlausibleReference(externalRef)) {
-    const err = new Error("Enter the reference you see in your payment app");
+    const err = new Error("Enter the transaction reference you see in your payment app");
     err.status = 400;
     throw err;
   }
@@ -115,9 +116,36 @@ export async function confirmPayment(userId, paymentId, externalRef) {
     throw err;
   }
 
-  const unpaid = ["PENDING"].includes(payment.status);
-  if (!unpaid) {
-    const err = new Error("This payment was already confirmed");
+  if (payment.status !== "PENDING") {
+    const err = new Error("This payment was already submitted");
+    err.status = 400;
+    throw err;
+  }
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: "SUBMITTED", externalRef },
+  });
+
+  return {
+    status: "SUBMITTED",
+    message:
+      "Your payment request was submitted. We'll review it and activate your plan once the transfer is confirmed.",
+  };
+}
+
+// Owner-only: after verifying the money arrived, mark the payment PAID and
+// upgrade the user's plan.
+export async function approvePayment(paymentId) {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) {
+    const err = new Error("Payment not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (payment.status !== "SUBMITTED") {
+    const err = new Error("Only submitted payments can be approved");
     err.status = 400;
     throw err;
   }
@@ -125,10 +153,10 @@ export async function confirmPayment(userId, paymentId, externalRef) {
   await Promise.all([
     prisma.payment.update({
       where: { id: payment.id },
-      data: { status: "PAID", externalRef, paidAt: new Date() },
+      data: { status: "PAID", paidAt: new Date() },
     }),
     prisma.user.update({
-      where: { id: userId },
+      where: { id: payment.userId },
       data: { planType: payment.planType },
     }),
   ]);
@@ -137,4 +165,26 @@ export async function confirmPayment(userId, paymentId, externalRef) {
     planType: payment.planType,
     plan: getPlanSummary(payment.planType),
   };
+}
+
+// Owner-only: list payments, optionally filtered by status.
+export async function listPayments(status) {
+  const where = status ? { status } : {};
+  const payments = await prisma.payment.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+    include: { user: { select: { email: true } } },
+  });
+  return payments.map((p) => ({
+    id: p.id,
+    email: p.user.email,
+    planType: p.planType,
+    amountEGP: p.amountEGP,
+    reference: p.reference,
+    method: p.method,
+    externalRef: p.externalRef,
+    status: p.status,
+    createdAt: p.createdAt,
+    paidAt: p.paidAt,
+  }));
 }

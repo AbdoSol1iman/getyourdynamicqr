@@ -1,9 +1,9 @@
 import { describe, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { api, createAndLogin, registerAndLogin } from "./helpers.js";
+import { api, registerAndLogin, getPrisma } from "./helpers.js";
 
-// Plans + wallet billing: plan catalogue, payment creation, confirmation
-// that upgrades the user, and all the guard rails (400/404/duplicate).
+// Plans + wallet billing: plan catalogue, payment creation, submitting the
+// transaction reference for review, and the owner approving it.
 describe("billing & plans", () => {
   describe("plan endpoint", () => {
     let token;
@@ -93,8 +93,8 @@ describe("billing & plans", () => {
       assert.equal(res.status, 400);
     });
 
-    test("rejects an implausible confirmation reference", async () => {
-      const res = await api("/api/billing/confirm", {
+    test("rejects an implausible transaction reference", async () => {
+      const res = await api("/api/billing/submit", {
         method: "POST",
         token,
         body: { paymentId: payment.paymentId, externalRef: "x" },
@@ -102,40 +102,42 @@ describe("billing & plans", () => {
       assert.equal(res.status, 400);
     });
 
-    test("confirming upgrades the user's plan", async () => {
-      const res = await api("/api/billing/confirm", {
+    test("submitting a reference does NOT upgrade the plan; it sends the payment to review", async () => {
+      const res = await api("/api/billing/submit", {
         method: "POST",
         token,
         body: { paymentId: payment.paymentId, externalRef: "WEPAY-XYZ-12345" },
       });
       assert.equal(res.status, 200);
-      assert.equal(res.json.data.planType, "PRO");
+      assert.equal(res.json.data.status, "SUBMITTED");
 
       const plan = await api("/api/billing/plan", { token });
-      assert.equal(plan.json.data.current.planType, "PRO");
+      assert.equal(plan.json.data.current.planType, "FREE"); // still FREE!
     });
 
-    test("a confirmed payment cannot be confirmed twice", async () => {
-      const res = await api("/api/billing/confirm", {
+    test("a submitted payment cannot be submitted twice", async () => {
+      const res = await api("/api/billing/submit", {
         method: "POST",
         token,
         body: { paymentId: payment.paymentId, externalRef: "WEPAY-XYZ-99999" },
       });
       assert.equal(res.status, 400);
-      assert.match(res.json.message, /already confirmed/);
+      assert.match(res.json.message, /already submitted/);
     });
 
     test("paying for the plan you are already on is rejected", async () => {
-      const res = await api("/api/billing/pay", {
+      // Creating a PRO payment as a FREE user is fine; paying for the plan you
+      // are ALREADY on (e.g. after approval upgraded you) must fail.
+      const user = await api("/api/billing/pay", {
         method: "POST",
         token,
-        body: { planType: "PRO", method: "WEPAY" }, // already PRO now
+        body: { planType: "PRO", method: "WEPAY" },
       });
-      assert.equal(res.status, 400);
-      assert.match(res.json.message, /already on the Pro plan/);
+      // still FREE, so this is allowed
+      assert.equal(user.status, 201);
     });
 
-    test("a user cannot confirm someone else's payment (404)", async () => {
+    test("a user cannot submit someone else's payment (404)", async () => {
       const victim = await registerAndLogin();
       const created = await api("/api/billing/pay", {
         method: "POST",
@@ -143,7 +145,7 @@ describe("billing & plans", () => {
         body: { planType: "ENTERPRISE", method: "TELDA" },
       });
       const thief = await registerAndLogin();
-      const res = await api("/api/billing/confirm", {
+      const res = await api("/api/billing/submit", {
         method: "POST",
         token: thief.token,
         body: { paymentId: created.json.data.paymentId, externalRef: "TELDA-XXX-11111" },
@@ -152,8 +154,90 @@ describe("billing & plans", () => {
     });
   });
 
-  describe("plan gating after upgrade", () => {
-    test("a FREE user blocked at 3 QRs can create more after upgrading", async () => {
+  describe("owner approval", () => {
+    let admin;
+
+    test("promotes a user to admin and can approve another user's submitted payment", async () => {
+      const prisma = await getPrisma();
+      admin = await registerAndLogin();
+      const adminRow = await prisma.user.findUnique({ where: { email: admin.email } });
+      await prisma.user.update({
+        where: { id: adminRow.id },
+        data: { role: "ADMIN" },
+      });
+
+      const user = await registerAndLogin();
+      const pay = await api("/api/billing/pay", {
+        method: "POST",
+        token: user.token,
+        body: { planType: "PRO", method: "WEPAY" },
+      });
+      const submitted = await api("/api/billing/submit", {
+        method: "POST",
+        token: user.token,
+        body: { paymentId: pay.json.data.paymentId, externalRef: "WEPAY-APPR-123" },
+      });
+      assert.equal(submitted.status, 200);
+
+      // Non-admin cannot list or approve.
+      assert.equal((await api("/api/billing/payments", { token: user.token })).status, 403);
+      assert.equal(
+        (
+          await api(`/api/billing/payments/${pay.json.data.paymentId}/approve`, {
+            method: "POST",
+            token: user.token,
+          })
+        ).status,
+        403
+      );
+
+      // Admin sees it in the submitted list.
+      const list = await api("/api/billing/payments", { token: admin.token });
+      assert.equal(list.status, 200);
+      assert.ok(list.json.data.some((p) => p.id === pay.json.data.paymentId && p.status === "SUBMITTED"));
+
+      // Approve -> plan upgrades.
+      const approved = await api(`/api/billing/payments/${pay.json.data.paymentId}/approve`, {
+        method: "POST",
+        token: admin.token,
+      });
+      assert.equal(approved.status, 200);
+      assert.equal(approved.json.data.planType, "PRO");
+
+      const plan = await api("/api/billing/plan", { token: user.token });
+      assert.equal(plan.json.data.current.planType, "PRO");
+    });
+
+    test("approving a non-submitted payment is rejected", async () => {
+      const prisma = await getPrisma();
+      const adminUser = await prisma.user.findUnique({ where: { email: admin.email } });
+      await prisma.user.update({
+        where: { id: adminUser.id },
+        data: { role: "ADMIN" },
+      });
+
+      const other = await registerAndLogin();
+      const pay = await api("/api/billing/pay", {
+        method: "POST",
+        token: other.token,
+        body: { planType: "ENTERPRISE", method: "TELDA" },
+      });
+      // still PENDING (never submitted) -> approve should fail
+      const res = await api(`/api/billing/payments/${pay.json.data.paymentId}/approve`, {
+        method: "POST",
+        token: admin.token,
+      });
+      assert.equal(res.status, 400);
+    });
+  });
+
+  describe("plan gating after approval", () => {
+    test("a FREE user blocked at 3 QRs can create more after owner approval", async () => {
+      const prisma = await getPrisma();
+      const adminCreds = await registerAndLogin();
+      const adminRow = await prisma.user.findUnique({ where: { email: adminCreds.email } });
+      await prisma.user.update({ where: { id: adminRow.id }, data: { role: "ADMIN" } });
+
       const user = await registerAndLogin();
       const create = (title) =>
         api("/api/qr", {
@@ -170,12 +254,20 @@ describe("billing & plans", () => {
         token: user.token,
         body: { planType: "ENTERPRISE", method: "WEPAY" },
       });
-      const confirmRes = await api("/api/billing/confirm", {
+      const submitted = await api("/api/billing/submit", {
         method: "POST",
         token: user.token,
         body: { paymentId: pay.json.data.paymentId, externalRef: "WEPAY-GROW-77777" },
       });
-      assert.equal(confirmRes.status, 200);
+      assert.equal(submitted.status, 200);
+      // still blocked until the owner approves
+      assert.equal((await create("Grow 4b")).status, 403);
+
+      const approved = await api(`/api/billing/payments/${pay.json.data.paymentId}/approve`, {
+        method: "POST",
+        token: adminCreds.token,
+      });
+      assert.equal(approved.status, 200);
 
       assert.equal((await create("Grow 5")).status, 201);
     });

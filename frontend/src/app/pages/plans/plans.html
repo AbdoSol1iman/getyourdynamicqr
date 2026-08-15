@@ -35,6 +35,12 @@
       <p class="success" role="status">{{ paidMessage }}</p>
     }
 
+    @if (submitMessage) {
+      <p class="success" role="status">
+        {{ submitMessage }} Your plan will switch as soon as the transfer is verified.
+      </p>
+    }
+
     <div class="plans">
       @for (plan of state()!.plans; track plan.planType) {
         <div class="plan-card" [class.current]="plan.planType === state()!.current.planType">
@@ -93,7 +99,7 @@
             <li>Open the <strong>{{ m.label }}</strong> app.</li>
             <li>Send <strong class="num">EGP {{ p.amountEGP }}</strong> to <strong>{{ m.account }}</strong>.</li>
             <li>Enter the reference <strong class="num">{{ p.reference }}</strong> as the payment note.</li>
-            <li>Copy the transaction reference from the app and confirm below.</li>
+            <li>Copy the transaction reference from the app and submit it below.</li>
           </ol>
 
           <label for="externalRef">{{ m.label }} transaction reference (from the app)</label>
@@ -101,17 +107,20 @@
             id="externalRef"
             [(ngModel)]="externalRef"
             placeholder="e.g. WEPAY-7845120369"
-            (keyup.enter)="confirmPayment()"
+            (keyup.enter)="submitPayment()"
           />
+          <p class="hint">
+            After you submit, we'll verify the transfer and activate your plan manually.
+          </p>
 
           <div class="row">
             <button class="btn btn-secondary" (click)="cancelPayment()">Cancel</button>
             <button
               class="btn btn-primary"
               [disabled]="paying || !externalRef.trim()"
-              (click)="confirmPayment()"
+              (click)="submitPayment()"
             >
-              {{ paying ? 'Confirming…' : 'Confirm payment' }}
+              {{ paying ? 'Submitting…' : 'Submit for review' }}
             </button>
           </div>
         }

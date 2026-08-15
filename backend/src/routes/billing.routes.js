@@ -1,13 +1,21 @@
 import { Router } from "express";
-import { plan, pay, confirm } from "../controllers/billing.controller.js";
-import { authenticate } from "../middleware/auth.middleware.js";
+import {
+  plan,
+  pay,
+  submit,
+  payments,
+  approve,
+} from "../controllers/billing.controller.js";
+import { authenticate, requireAdmin } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-router.use(authenticate);
+router.get("/plan", authenticate, plan);
+router.post("/pay", authenticate, pay);
+router.post("/submit", authenticate, submit);
 
-router.get("/plan", plan);
-router.post("/pay", pay);
-router.post("/confirm", confirm);
+// Owner-only payment review.
+router.get("/payments", requireAdmin, payments);
+router.post("/payments/:paymentId/approve", requireAdmin, approve);
 
 export default router;

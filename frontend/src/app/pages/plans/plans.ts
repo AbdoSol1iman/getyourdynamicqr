@@ -22,6 +22,7 @@ export class PlansPage implements OnInit {
   externalRef = '';
   payError = '';
   paidMessage = '';
+  submitMessage = '';
   paying = false;
 
   ngOnInit(): void {
@@ -71,22 +72,22 @@ export class PlansPage implements OnInit {
     this.payError = '';
   }
 
-  confirmPayment(): void {
+  submitPayment(): void {
     const p = this.payment();
     if (!p || !this.externalRef.trim()) return;
     this.paying = true;
     this.payError = '';
+    this.submitMessage = '';
 
-    this.billing.confirm(p.paymentId, this.externalRef.trim()).subscribe({
+    this.billing.submit(p.paymentId, this.externalRef.trim()).subscribe({
       next: (result) => {
         this.paying = false;
-        this.paidMessage = `Done! You're now on the ${result.plan.label} plan.`;
+        this.submitMessage = result.message;
         this.payment.set(null);
-        this.loadState();
       },
       error: (err) => {
         this.paying = false;
-        this.payError = err?.error?.message ?? 'Confirmation failed';
+        this.payError = err?.error?.message ?? 'Submission failed';
       },
     });
   }

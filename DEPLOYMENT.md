@@ -130,9 +130,15 @@ npm test
    WePay mobile number and `TELDA_ACCOUNT` for the Telda @username — e.g. set
    `WEPAY_ACCOUNT=01557886491`, `TELDA_ACCOUNT=@abdo2388`). Plans are FREE / PRO
    / ENTERPRISE with QR-count and custom-domain limits enforced server-side.
-   Payment confirmation is a self-served MVP flow (user enters the transaction
-   reference shown in their WePay/Telda app) — reconcile against your wallet
-   before going fully live.
+
+   **How upgrades work (manual review):** a customer pays the wallet account,
+   then submits the transaction reference shown in their WePay/Telda app. This
+   sets the payment to `SUBMITTED` but does **not** upgrade the plan. You verify
+   the money arrived and approve the payment yourself:
+   - Mark your own account as owner: `UPDATE "User" SET role = 'ADMIN' WHERE email = '<your-email>';`
+   - List submitted payments: `GET /api/billing/payments` (auth: your ADMIN token).
+   - Approve one: `POST /api/billing/payments/:paymentId/approve` — this marks it
+     `PAID` and upgrades the customer's plan.
 
 6. Click **Create Web Service**. Wait for the first deployment to finish.
 7. **Apply the database migrations once** (a one-time step, after the service is live):

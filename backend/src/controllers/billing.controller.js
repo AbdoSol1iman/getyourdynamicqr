@@ -1,7 +1,9 @@
 import {
   getPlanState,
   createPayment,
-  confirmPayment,
+  submitPaymentForReview,
+  approvePayment,
+  listPayments,
 } from "../services/billing.service.js";
 
 export async function plan(req, res) {
@@ -15,8 +17,24 @@ export async function pay(req, res) {
   res.status(201).json({ success: true, data: payment });
 }
 
-export async function confirm(req, res) {
+// User has transferred the money and submits their transaction reference for
+// manual review. The plan is NOT upgraded here.
+export async function submit(req, res) {
   const { paymentId, externalRef } = req.body;
-  const result = await confirmPayment(req.user.userId, paymentId, externalRef);
+  const result = await submitPaymentForReview(req.user.userId, paymentId, externalRef);
+  res.json({ success: true, data: result });
+}
+
+// Owner-only: list payments (optionally by status).
+export async function payments(req, res) {
+  const { status } = req.query;
+  const list = await listPayments(status);
+  res.json({ success: true, data: list });
+}
+
+// Owner-only: approve a submitted payment and upgrade the user's plan.
+export async function approve(req, res) {
+  const { paymentId } = req.params;
+  const result = await approvePayment(paymentId);
   res.json({ success: true, data: result });
 }
