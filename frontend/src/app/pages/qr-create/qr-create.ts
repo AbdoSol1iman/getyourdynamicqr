@@ -23,8 +23,8 @@ export class QrCreate implements OnInit {
   });
 
   readonly domains = signal<{ id: string; domain: string }[]>([]);
-  error = '';
-  created: QrCode | null = null;
+  readonly error = signal('');
+  readonly created = signal<QrCode | null>(null);
   readonly submitting = signal(false);
 
   ngOnInit(): void {
@@ -37,24 +37,24 @@ export class QrCreate implements OnInit {
   onSubmit(): void {
     // Guard against double-clicks / duplicate submits: one QR per click.
     if (this.form.invalid || this.submitting()) return;
-    this.error = '';
+    this.error.set('');
     this.submitting.set(true);
 
     const { title, destinationUrl, domainId } = this.form.getRawValue();
     this.qrService.create(title, destinationUrl, domainId || null).subscribe({
       next: (qr) => {
         this.submitting.set(false);
-        this.created = qr;
+        this.created.set(qr);
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error = err?.error?.message ?? 'Failed to create QR code';
+        this.error.set(err?.error?.message ?? 'Failed to create QR code');
       },
     });
   }
 
   createAnother(): void {
-    this.created = null;
+    this.created.set(null);
     this.form.reset();
   }
 }

@@ -1,6 +1,13 @@
 <div class="topbar">
   <div class="brand">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
       <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
@@ -18,15 +25,15 @@
       <span class="spinner" aria-hidden="true"></span>
       Loading QR code...
     </div>
-  } @else if (error() && !original) {
+  } @else if (error() && !original()) {
     <p class="error" role="alert">{{ error() }}</p>
-  } @else if (original) {
+  } @else if (original(); as original) {
     <div class="page-head">
       <div>
         <h1>Edit QR code</h1>
         <p class="note">
-          Changing the destination will <strong>not</strong> change the short code.
-          Your printed QR stays valid. Current code: <code>{{ original.shortCode }}</code>
+          Changing the destination will <strong>not</strong> change the short code. Your printed QR
+          stays valid. Current code: <code>{{ original.shortCode }}</code>
         </p>
       </div>
     </div>
@@ -80,7 +87,11 @@
 
       <div class="preview">
         <div class="qr-box">
-          <app-qr-image [src]="original.qrImage ?? null" [text]="original.redirectUrl" [size]="200" />
+          <app-qr-image
+            [src]="original.qrImage ?? null"
+            [text]="original.redirectUrl"
+            [size]="200"
+          />
         </div>
         <p class="meta">This QR stays the same.</p>
       </div>

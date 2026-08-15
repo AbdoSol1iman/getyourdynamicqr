@@ -20,10 +20,10 @@ export class PlansPage implements OnInit {
   // Active payment being paid (shown as a panel).
   readonly payment = signal<Payment | null>(null);
   externalRef = '';
-  payError = '';
-  paidMessage = '';
-  submitMessage = '';
-  paying = false;
+  readonly payError = signal('');
+  readonly paidMessage = signal('');
+  readonly submitMessage = signal('');
+  readonly paying = signal(false);
 
   ngOnInit(): void {
     this.loadState();
@@ -56,38 +56,38 @@ export class PlansPage implements OnInit {
   }
 
   startPayment(planType: string, method: string): void {
-    this.payError = '';
-    this.paidMessage = '';
+    this.payError.set('');
+    this.paidMessage.set('');
     this.billing.createPayment(planType, method).subscribe({
       next: (payment) => {
         this.payment.set(payment);
         this.externalRef = '';
       },
-      error: (err) => (this.payError = err?.error?.message ?? 'Could not start payment'),
+      error: (err) => this.payError.set(err?.error?.message ?? 'Could not start payment'),
     });
   }
 
   cancelPayment(): void {
     this.payment.set(null);
-    this.payError = '';
+    this.payError.set('');
   }
 
   submitPayment(): void {
     const p = this.payment();
     if (!p || !this.externalRef.trim()) return;
-    this.paying = true;
-    this.payError = '';
-    this.submitMessage = '';
+    this.paying.set(true);
+    this.payError.set('');
+    this.submitMessage.set('');
 
     this.billing.submit(p.paymentId, this.externalRef.trim()).subscribe({
       next: (result) => {
-        this.paying = false;
-        this.submitMessage = result.message;
+        this.paying.set(false);
+        this.submitMessage.set(result.message);
         this.payment.set(null);
       },
       error: (err) => {
-        this.paying = false;
-        this.payError = err?.error?.message ?? 'Submission failed';
+        this.paying.set(false);
+        this.payError.set(err?.error?.message ?? 'Submission failed');
       },
     });
   }

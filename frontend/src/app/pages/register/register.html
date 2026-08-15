@@ -1,7 +1,13 @@
 <div class="auth-card">
   <header class="auth-head">
     <span class="logo-badge" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
         <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
         <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
         <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
@@ -17,25 +23,41 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()">
     <label for="email">Email</label>
-    <input id="email" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email" />
+    <input
+      id="email"
+      type="email"
+      formControlName="email"
+      placeholder="you@example.com"
+      autocomplete="email"
+    />
     @if (form.controls.email.touched && form.controls.email.invalid) {
       <div class="field-error" role="alert">Enter a valid email.</div>
     }
 
     <label for="password">Password</label>
-    <input id="password" type="password" formControlName="password" placeholder="At least 8 characters" autocomplete="new-password" />
+    <input
+      id="password"
+      type="password"
+      formControlName="password"
+      placeholder="At least 8 characters"
+      autocomplete="new-password"
+    />
     @if (form.controls.password.touched && form.controls.password.invalid) {
       <div class="field-error" role="alert">Password must be at least 8 characters.</div>
     }
 
-    @if (error) {
-      <p class="form-error" role="alert">{{ error }}</p>
+    @if (error()) {
+      <p class="form-error" role="alert">{{ error() }}</p>
     }
-    @if (success) {
+    @if (success()) {
       <p class="success" role="status">Account created! Redirecting to sign in...</p>
     }
 
-    <button class="btn btn-primary btn-block" type="submit" [disabled]="form.invalid || submitting()">
+    <button
+      class="btn btn-primary btn-block"
+      type="submit"
+      [disabled]="form.invalid || submitting()"
+    >
       @if (submitting()) {
         <span class="spinner" aria-hidden="true"></span>
         Creating account…
@@ -45,7 +67,5 @@
     </button>
   </form>
 
-  <p class="switch">
-    Already have an account? <a routerLink="/login">Sign in</a>
-  </p>
+  <p class="switch">Already have an account? <a routerLink="/login">Sign in</a></p>
 </div>
