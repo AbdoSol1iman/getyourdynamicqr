@@ -231,7 +231,155 @@ describe("billing & plans", () => {
     });
   });
 
-  describe("plan gating after approval", () => {
+  // Owner-only: reject/decline a submitted payment, and the customer re-submit.
+describe("owner decline + customer resubmit", () => {
+  test("a declined payment stays FREE, shows a reason, and can be re-submitted", async () => {
+    const prisma = await getPrisma();
+    const adminCreds = await registerAndLogin();
+    const adminRow = await prisma.user.findUnique({ where: { email: adminCreds.email } });
+    await prisma.user.update({ where: { id: adminRow.id }, data: { role: "ADMIN" } });
+
+    // Customer creates + submits a payment.
+    const user = await registerAndLogin();
+    const pay = await api("/api/billing/pay", {
+      method: "POST",
+      token: user.token,
+      body: { planType: "STARTER", method: "WEPAY" },
+    });
+    const paymentId = pay.json.data.paymentId;
+    const submitted = await api("/api/billing/submit", {
+      method: "POST",
+      token: user.token,
+      body: { paymentId, externalRef: "WEPAY-DECL-111" },
+    });
+    assert.equal(submitted.status, 200);
+
+    // Admin declines with a reason.
+    const declined = await api(`/api/billing/payments/${paymentId}/decline`, {
+      method: "POST",
+      token: adminCreds.token,
+      body: { reason: "Transfer never arrived" },
+    });
+    assert.equal(declined.status, 200);
+    assert.equal(declined.json.data.status, "DECLINED");
+
+    // Plan unchanged.
+    const plan = await api("/api/billing/plan", { token: user.token });
+    assert.equal(plan.json.data.current.planType, "FREE");
+    // The customer's plan state surfaces the decline reason for the UI.
+    assert.equal(plan.json.data.declined.paymentId, paymentId);
+    assert.equal(plan.json.data.declined.reason, "Transfer never arrived");
+
+    // Declined payment is listed among owner payments with the reason.
+    const list = await api("/api/billing/payments", { token: adminCreds.token });
+    const row = list.json.data.find((p) => p.id === paymentId);
+    assert.equal(row.status, "DECLINED");
+    assert.equal(row.declineReason, "Transfer never arrived");
+
+    // Customer re-submits with a new reference -> back to review, reason cleared.
+    const resubmit = await api("/api/billing/resubmit", {
+      method: "POST",
+      token: user.token,
+      body: { paymentId, externalRef: "WEPAY-DECL-222" },
+    });
+    assert.equal(resubmit.status, 200);
+    assert.equal(resubmit.json.data.status, "SUBMITTED");
+
+    const after = await api("/api/billing/plan", { token: user.token });
+    assert.equal(after.json.data.declined, null);
+    const listed = await api("/api/billing/payments", { token: adminCreds.token });
+    const row2 = listed.json.data.find((p) => p.id === paymentId);
+    assert.equal(row2.status, "SUBMITTED");
+    assert.equal(row2.declineReason, null);
+  });
+
+  test("declining requires admin and only submitted payments", async () => {
+    const prisma = await getPrisma();
+    const adminCreds = await registerAndLogin();
+    const adminRow = await prisma.user.findUnique({ where: { email: adminCreds.email } });
+    await prisma.user.update({ where: { id: adminRow.id }, data: { role: "ADMIN" } });
+
+    const user = await registerAndLogin();
+    const pay = await api("/api/billing/pay", {
+      method: "POST",
+      token: user.token,
+      body: { planType: "STARTER", method: "WEPAY" },
+    });
+    const paymentId = pay.json.data.paymentId;
+
+    // Non-admin cannot decline (403).
+    assert.equal(
+      (
+        await api(`/api/billing/payments/${paymentId}/decline`, {
+          method: "POST",
+          token: user.token,
+          body: { reason: "nope" },
+        })
+      ).status,
+      403
+    );
+
+    // PENDING (never submitted) cannot be declined.
+    const declined = await api(`/api/billing/payments/${paymentId}/decline`, {
+      method: "POST",
+      token: adminCreds.token,
+      body: { reason: "nope" },
+    });
+    assert.equal(declined.status, 400);
+
+    // A user cannot resubmit a payment that isn't theirs or isn't declined.
+    const other = await registerAndLogin();
+    const res = await api("/api/billing/resubmit", {
+      method: "POST",
+      token: other.token,
+      body: { paymentId, externalRef: "WEPAY-X-1" },
+    });
+    assert.equal(res.status, 404);
+  });
+
+  test("resubmit requires a plausible reference and can only resubmit declined payments", async () => {
+    const prisma = await getPrisma();
+    const admin = await registerAndLogin();
+    const adminRow = await prisma.user.findUnique({ where: { email: admin.email } });
+    await prisma.user.update({ where: { id: adminRow.id }, data: { role: "ADMIN" } });
+
+    const user = await registerAndLogin();
+    const pay = await api("/api/billing/pay", {
+      method: "POST",
+      token: user.token,
+      body: { planType: "STARTER", method: "TELDA" },
+    });
+    const paymentId = pay.json.data.paymentId;
+
+    // A PENDING payment (never declined) cannot be re-submitted.
+    const pending = await api("/api/billing/resubmit", {
+      method: "POST",
+      token: user.token,
+      body: { paymentId, externalRef: "TELDA-X-1" },
+    });
+    assert.equal(pending.status, 400);
+
+    await api("/api/billing/submit", {
+      method: "POST",
+      token: user.token,
+      body: { paymentId, externalRef: "TELDA-DECL-1" },
+    });
+    await api(`/api/billing/payments/${paymentId}/decline`, {
+      method: "POST",
+      token: admin.token,
+      body: { reason: "bad ref" },
+    });
+
+    const bad = await api("/api/billing/resubmit", {
+      method: "POST",
+      token: user.token,
+      body: { paymentId, externalRef: "x" },
+    });
+    assert.equal(bad.status, 400);
+  });
+});
+
+describe("plan gating after approval", () => {
     test("a FREE user blocked at 3 QRs can create more after owner approval", async () => {
       const prisma = await getPrisma();
       const adminCreds = await registerAndLogin();

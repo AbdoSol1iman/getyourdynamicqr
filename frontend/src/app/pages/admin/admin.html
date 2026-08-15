@@ -64,7 +64,7 @@
 
   @if (tab() === 'payments') {
     <div class="filters" role="tablist" aria-label="Payment status">
-      @for (f of ['SUBMITTED', 'PENDING', 'PAID', 'ALL']; track f) {
+      @for (f of ['SUBMITTED', 'PENDING', 'DECLINED', 'PAID', 'ALL']; track f) {
         <button
           class="filter"
           [class.active]="filter() === f"
@@ -125,20 +125,34 @@
                   <span class="badge" [class.pending]="p.status === 'SUBMITTED'">
                     {{ p.status }}
                   </span>
+                  @if (p.declineReason) {
+                    <span class="extref" title="Reason shown to the customer">
+                      {{ p.declineReason }}
+                    </span>
+                  }
                 </td>
                 <td>{{ p.createdAt | date: 'medium' }}</td>
                 <td class="right">
-                  @if (p.status === 'SUBMITTED') {
-                    <button
-                      class="btn btn-accent btn-sm"
-                      [disabled]="approveBusy() === p.id"
-                      (click)="approve(p)"
-                    >
-                      {{ approveBusy() === p.id ? 'Approving…' : 'Approve &amp; upgrade' }}
-                    </button>
-                  } @else {
-                    <span class="muted">{{ p.paidAt ? 'Paid' : '—' }}</span>
-                  }
+                  <div class="row-actions">
+                    @if (p.status === 'SUBMITTED') {
+                      <button
+                        class="btn btn-accent btn-sm"
+                        [disabled]="approveBusy() === p.id"
+                        (click)="approve(p)"
+                      >
+                        {{ approveBusy() === p.id ? 'Working…' : 'Approve' }}
+                      </button>
+                      <button
+                        class="btn btn-danger btn-sm"
+                        [disabled]="approveBusy() === p.id"
+                        (click)="decline(p)"
+                      >
+                        Decline
+                      </button>
+                    } @else {
+                      <span class="muted">{{ p.paidAt ? 'Paid' : '—' }}</span>
+                    }
+                  </div>
                 </td>
               </tr>
             }

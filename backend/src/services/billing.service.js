@@ -20,7 +20,13 @@ export async function getUserPlanType(userId) {
 }
 
 export async function getPlanState(userId) {
-  const planType = await getUserPlanType(userId);
+  const [planType, declined] = await Promise.all([
+    getUserPlanType(userId),
+    prisma.payment.findFirst({
+      where: { userId, status: "DECLINED" },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
   return {
     current: { planType, ...getPlanSummary(planType) },
     plans: PLAN_ORDER.map((key) => {
@@ -32,6 +38,15 @@ export async function getPlanState(userId) {
       };
     }),
     methods: listPaymentMethods(),
+    declined: declined
+      ? {
+          paymentId: declined.id,
+          planType: declined.planType,
+          amountEGP: declined.amountEGP,
+          reference: declined.reference,
+          reason: declined.declineReason,
+        }
+      : null,
   };
 }
 
@@ -170,6 +185,68 @@ export async function approvePayment(paymentId) {
   };
 }
 
+// Owner-only: reject a submitted payment (e.g. transfer never arrived or the
+// reference does not match). The plan is NOT upgraded. A declined payment can
+// be re-submitted by the customer after they fix the problem.
+export async function declinePayment(paymentId, reason) {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) {
+    const err = new Error("Payment not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (payment.status !== "SUBMITTED") {
+    const err = new Error("Only submitted payments can be declined");
+    err.status = 400;
+    throw err;
+  }
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: "DECLINED", declineReason: reason || null },
+  });
+
+  return { status: "DECLINED" };
+}
+
+// User-side: re-submit a declined payment after the customer fixes the issue
+// (e.g. they re-send the transfer and provide a new reference). Back to review,
+// decline reason cleared.
+export async function resubmitDeclinedPayment(userId, paymentId, externalRef) {
+  if (!isPlausibleReference(externalRef)) {
+    const err = new Error("Enter the transaction reference you see in your payment app");
+    err.status = 400;
+    throw err;
+  }
+
+  const payment = await prisma.payment.findFirst({
+    where: { id: paymentId, userId },
+  });
+  if (!payment) {
+    const err = new Error("Payment not found");
+    err.status = 404;
+    throw err;
+  }
+
+  if (payment.status !== "DECLINED") {
+    const err = new Error("Only declined payments can be re-submitted");
+    err.status = 400;
+    throw err;
+  }
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: "SUBMITTED", externalRef, declineReason: null },
+  });
+
+  return {
+    status: "SUBMITTED",
+    message:
+      "Your payment was re-submitted. We'll review it again and activate your plan once the transfer is confirmed.",
+  };
+}
+
 // Owner-only: list payments, optionally filtered by status.
 export async function listPayments(status) {
   const where = status ? { status } : {};
@@ -187,6 +264,7 @@ export async function listPayments(status) {
     method: p.method,
     externalRef: p.externalRef,
     status: p.status,
+    declineReason: p.declineReason,
     createdAt: p.createdAt,
     paidAt: p.paidAt,
   }));

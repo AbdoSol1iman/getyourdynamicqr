@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { BillingService, BillingState, Payment } from '../../services/billing.service';
+import { BillingService, BillingState, Payment, DeclinedPayment } from '../../services/billing.service';
 import { QrImageComponent } from '../../components/qr-image/qr-image';
 
 @Component({
@@ -16,6 +16,13 @@ export class PlansPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal('');
   readonly state = signal<BillingState | null>(null);
+
+  // Customer-facing declined-payment resubmit.
+  readonly declined = signal<DeclinedPayment | null>(null);
+  readonly declineError = signal('');
+  readonly declineMessage = signal('');
+  readonly resubmitting = signal(false);
+  resubmitRef = '';
 
   // Active payment being paid (shown as a panel).
   readonly payment = signal<Payment | null>(null);
@@ -34,6 +41,7 @@ export class PlansPage implements OnInit {
     this.billing.state().subscribe({
       next: (state) => {
         this.state.set(state);
+        this.declined.set(state.declined);
         this.loading.set(false);
       },
       error: (err) => {
@@ -88,6 +96,27 @@ export class PlansPage implements OnInit {
       error: (err) => {
         this.paying.set(false);
         this.payError.set(err?.error?.message ?? 'Submission failed');
+      },
+    });
+  }
+
+  resubmitPayment(): void {
+    const d = this.declined();
+    if (!d || !this.resubmitRef.trim()) return;
+    this.resubmitting.set(true);
+    this.declineError.set('');
+    this.declineMessage.set('');
+
+    this.billing.resubmit(d.paymentId, this.resubmitRef.trim()).subscribe({
+      next: (result) => {
+        this.resubmitting.set(false);
+        this.declineMessage.set(result.message);
+        this.declined.set(null);
+        this.resubmitRef = '';
+      },
+      error: (err) => {
+        this.resubmitting.set(false);
+        this.declineError.set(err?.error?.message ?? 'Re-submission failed');
       },
     });
   }

@@ -2,7 +2,9 @@ import {
   getPlanState,
   createPayment,
   submitPaymentForReview,
+  resubmitDeclinedPayment,
   approvePayment,
+  declinePayment,
   listPayments,
 } from "../services/billing.service.js";
 
@@ -25,6 +27,13 @@ export async function submit(req, res) {
   res.json({ success: true, data: result });
 }
 
+// User fixes a declined payment (re-sends transfer, new reference).
+export async function resubmit(req, res) {
+  const { paymentId, externalRef } = req.body;
+  const result = await resubmitDeclinedPayment(req.user.userId, paymentId, externalRef);
+  res.json({ success: true, data: result });
+}
+
 // Owner-only: list payments (optionally by status).
 export async function payments(req, res) {
   const { status } = req.query;
@@ -36,5 +45,13 @@ export async function payments(req, res) {
 export async function approve(req, res) {
   const { paymentId } = req.params;
   const result = await approvePayment(paymentId);
+  res.json({ success: true, data: result });
+}
+
+// Owner-only: decline a submitted payment (transfer never arrived, bad ref…).
+export async function decline(req, res) {
+  const { paymentId } = req.params;
+  const { reason } = req.body;
+  const result = await declinePayment(paymentId, reason);
   res.json({ success: true, data: result });
 }

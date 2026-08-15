@@ -84,20 +84,47 @@ export class AdminPage implements OnInit {
     });
   }
 
-  approve(payment: ReviewPayment): void {
+approve(payment: ReviewPayment): void {
     this.actionError.set('');
     this.approveBusy.set(payment.id);
     this.billing.approve(payment.id).subscribe({
       next: () => {
         this.payments.update((list) =>
           list.map((p) =>
-            p.id === payment.id ? { ...p, status: 'PAID', paidAt: new Date().toISOString() } : p,
-          ),
+            p.id === payment.id
+              ? { ...p, status: 'PAID', paidAt: new Date().toISOString() }
+              : p
+          )
         );
         this.approveBusy.set(null);
       },
       error: (err) => {
         this.actionError.set(err?.error?.message ?? 'Approval failed');
+        this.approveBusy.set(null);
+      },
+    });
+  }
+
+  decline(payment: ReviewPayment): void {
+    const reason = prompt(
+      `Decline ${payment.email} (${payment.planType}, ${payment.reference})?\n\nOptional reason shown to the customer:`
+    );
+    if (reason === null) return;
+    this.actionError.set('');
+    this.approveBusy.set(payment.id);
+    this.billing.decline(payment.id, reason.trim()).subscribe({
+      next: () => {
+        this.payments.update((list) =>
+          list.map((p) =>
+            p.id === payment.id
+              ? { ...p, status: 'DECLINED', declineReason: reason.trim() || null }
+              : p
+          )
+        );
+        this.approveBusy.set(null);
+      },
+      error: (err) => {
+        this.actionError.set(err?.error?.message ?? 'Decline failed');
         this.approveBusy.set(null);
       },
     });

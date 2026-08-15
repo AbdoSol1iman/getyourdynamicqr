@@ -102,6 +102,23 @@
   border-radius: var(--radius-lg);
 }
 
+.declined-box {
+  margin-top: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger, #b91c1c);
+  border-radius: var(--radius-lg);
+}
+
+.declined-box h3 {
+  margin: 0 0 var(--space-xs);
+}
+
+.declined-box label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .pay-details {
   display: flex;
   flex-wrap: wrap;

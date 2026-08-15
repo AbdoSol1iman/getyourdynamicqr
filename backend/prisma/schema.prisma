@@ -79,16 +79,17 @@ model CustomDomain {
 // reference, then submits the app's transaction reference to confirm (MVP:
 // self-served confirmation; a real shop would reconcile via the provider).
 model Payment {
-  id          String   @id @default(cuid())
-  userId      String
-  planType    String
-  amountEGP   Int
-  reference   String   @unique
-  method      String   @default("WEPAY") // WEPAY | TELDA
-  externalRef String?
-  status      String   @default("PENDING") // PENDING | PAID
-  createdAt   DateTime @default(now())
-  paidAt      DateTime?
+  id            String   @id @default(cuid())
+  userId        String
+  planType      String
+  amountEGP     Int
+  reference     String   @unique
+  method        String   @default("WEPAY") // WEPAY | TELDA
+  externalRef   String?
+  status        String   @default("PENDING") // PENDING | SUBMITTED | PAID | DECLINED
+  declineReason String?
+  createdAt     DateTime @default(now())
+  paidAt        DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

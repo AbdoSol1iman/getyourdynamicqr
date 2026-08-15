@@ -48,6 +48,46 @@
       </p>
     }
 
+    @if (declineMessage()) {
+      <p class="success" role="status">{{ declineMessage() }}</p>
+    }
+
+    @if (declined(); as d) {
+      <div class="declined-box" role="alert">
+        <h3>Your {{ d.planType }} payment was declined</h3>
+        <p>
+          We couldn't verify the transfer for <strong class="num">EGP {{ d.amountEGP }}</strong>
+          (reference <strong class="num">{{ d.reference }}</strong>).
+          @if (d.reason) {
+            Reason: <em>{{ d.reason }}</em>
+          }
+        </p>
+        <p class="hint">
+          If you already resend the money, re-enter the payment note and submit the new
+          transaction reference from your app below.
+        </p>
+        <label for="resubmitRef">New transaction reference (from the payment app)</label>
+        <input
+          id="resubmitRef"
+          [(ngModel)]="resubmitRef"
+          placeholder="e.g. WEPAY-7845120369"
+          (keyup.enter)="resubmitPayment()"
+        />
+        @if (declineError()) {
+          <p class="error" role="alert">{{ declineError() }}</p>
+        }
+        <div class="row">
+          <button
+            class="btn btn-primary"
+            [disabled]="resubmitting() || !resubmitRef.trim()"
+            (click)="resubmitPayment()"
+          >
+            {{ resubmitting() ? 'Submitting…' : 'Re-submit for review' }}
+          </button>
+        </div>
+      </div>
+    }
+
     <div class="plans">
       @for (plan of state()!.plans; track plan.planType) {
         <div
