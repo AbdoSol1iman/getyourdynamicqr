@@ -19,25 +19,25 @@ export class Register {
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
 
-  error = '';
-  success = false;
+  readonly error = signal('');
+  readonly success = signal(false);
   readonly submitting = signal(false);
 
   onSubmit(): void {
     if (this.form.invalid || this.submitting()) return;
 
-    this.error = '';
+    this.error.set('');
     this.submitting.set(true);
     const { email, password } = this.form.getRawValue();
     this.auth.register(email, password).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.success = true;
+        this.success.set(true);
         setTimeout(() => this.router.navigate(['/login']), 1200);
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error = err?.error?.message ?? 'Registration failed';
+        this.error.set(err?.error?.message ?? 'Registration failed');
       },
     });
   }

@@ -19,13 +19,13 @@ export class Login {
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
 
-  error = '';
+  readonly error = signal('');
   readonly submitting = signal(false);
 
   onSubmit(): void {
     if (this.form.invalid || this.submitting()) return;
 
-    this.error = '';
+    this.error.set('');
     this.submitting.set(true);
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
@@ -35,9 +35,12 @@ export class Login {
       },
       error: (err) => {
         this.submitting.set(false);
-        this.error =
+        this.error.set(
           err?.error?.message ??
-          (err?.status === 0 ? 'Failed to fetch. Check the API URL and CORS settings.' : 'Login failed');
+            (err?.status === 0
+              ? 'Failed to fetch. Check the API URL and CORS settings.'
+              : 'Login failed'),
+        );
       },
     });
   }

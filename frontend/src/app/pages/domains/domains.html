@@ -1,6 +1,13 @@
 <div class="topbar">
   <div class="brand">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
       <rect x="2.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="13.5" y="2.5" width="8" height="8" rx="1.5" fill="currentColor" />
       <rect x="2.5" y="13.5" width="8" height="8" rx="1.5" fill="currentColor" />
@@ -17,8 +24,8 @@
     <div>
       <h1>Custom domains</h1>
       <p class="subtitle">
-        Print your QR codes with your own domain instead of ours.
-        Example: <code>qr.myrestaurant.com/q/aX7bK9</code>
+        Print your QR codes with your own domain instead of ours. Example:
+        <code>qr.myrestaurant.com/q/aX7bK9</code>
       </p>
     </div>
   </div>
@@ -34,8 +41,8 @@
     <button class="btn btn-primary" (click)="addDomain()">Add domain</button>
   </div>
 
-  @if (addError) {
-    <p class="error" role="alert">{{ addError }}</p>
+  @if (addError()) {
+    <p class="error" role="alert">{{ addError() }}</p>
   }
 
   <h2 class="section-head">Your domains</h2>
@@ -49,8 +56,8 @@
     <p class="error" role="alert">{{ error() }}</p>
   } @else if (domains().length === 0) {
     <p class="muted">
-      No domains yet. Add one above (DNS will point it at our server) and then
-      pick it when creating a QR code.
+      No domains yet. Add one above (DNS will point it at our server) and then pick it when creating
+      a QR code.
     </p>
   } @else {
     <div class="table-wrap">
@@ -66,7 +73,9 @@
         <tbody>
           @for (domain of domains(); track domain.id) {
             <tr>
-              <td><code>{{ domain.domain }}</code></td>
+              <td>
+                <code>{{ domain.domain }}</code>
+              </td>
               <td>
                 @if (domain.isVerified) {
                   <span class="badge">Verified</span>

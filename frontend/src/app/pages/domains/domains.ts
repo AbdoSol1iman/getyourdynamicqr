@@ -18,7 +18,7 @@ export class DomainsPage implements OnInit {
   readonly domains = signal<CustomDomain[]>([]);
 
   newDomain = '';
-  addError = '';
+  readonly addError = signal('');
 
   ngOnInit(): void {
     this.domainService.list().subscribe({
@@ -36,14 +36,14 @@ export class DomainsPage implements OnInit {
   addDomain(): void {
     const domain = this.newDomain.trim();
     if (!domain) return;
-    this.addError = '';
+    this.addError.set('');
 
     this.domainService.create(domain).subscribe({
       next: (created) => {
         this.domains.update((list) => [created, ...list]);
         this.newDomain = '';
       },
-      error: (err) => (this.addError = err?.error?.message ?? 'Failed to add domain'),
+      error: (err) => this.addError.set(err?.error?.message ?? 'Failed to add domain'),
     });
   }
 

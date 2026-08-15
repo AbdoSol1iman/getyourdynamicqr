@@ -22,7 +22,7 @@ export class QrEdit implements OnInit {
   readonly error = signal('');
   readonly domains = signal<{ id: string; domain: string }[]>([]);
   readonly submitting = signal(false);
-  original: QrCode | null = null;
+  readonly original = signal<QrCode | null>(null);
 
   form = this.fb.nonNullable.group({
     title: ['', [Validators.required, Validators.maxLength(100)]],
@@ -39,7 +39,7 @@ export class QrEdit implements OnInit {
     });
     this.qrService.get(id).subscribe({
       next: (qr) => {
-        this.original = qr;
+        this.original.set(qr);
         this.form.patchValue({
           title: qr.title,
           destinationUrl: qr.destinationUrl,
@@ -56,20 +56,23 @@ export class QrEdit implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.original || this.submitting()) return;
+    const current = this.original();
+    if (this.form.invalid || !current || this.submitting()) return;
     this.error.set('');
     this.submitting.set(true);
 
     const { title, destinationUrl, isActive, domainId } = this.form.getRawValue();
-    this.qrService.update(this.original.id, { title, destinationUrl, isActive, domainId: domainId || null }).subscribe({
-      next: () => {
-        this.submitting.set(false);
-        this.router.navigate(['/dashboard']);
-      },
-      error: (err) => {
-        this.submitting.set(false);
-        this.error.set(err?.error?.message ?? 'Update failed');
-      },
-    });
+    this.qrService
+      .update(current.id, { title, destinationUrl, isActive, domainId: domainId || null })
+      .subscribe({
+        next: () => {
+          this.submitting.set(false);
+          this.router.navigate(['/dashboard']);
+        },
+        error: (err) => {
+          this.submitting.set(false);
+          this.error.set(err?.error?.message ?? 'Update failed');
+        },
+      });
   }
 }

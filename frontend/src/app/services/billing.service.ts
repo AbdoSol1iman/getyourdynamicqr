@@ -57,6 +57,22 @@ export interface ReviewPayment {
   paidAt: string | null;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  planType: string;
+  role: string;
+  isActive: boolean;
+  qrCount: number;
+  createdAt: string;
+}
+
+export interface AdminUserPatch {
+  planType?: string;
+  role?: string;
+  isActive?: boolean;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -95,8 +111,20 @@ export class BillingService {
     return this.http
       .post<ApiResponse<{ planType: string }>>(
         `${API_URL}/api/billing/payments/${paymentId}/approve`,
-        {}
+        {},
       )
+      .pipe(map((res) => res.data));
+  }
+
+  listUsers(): Observable<AdminUser[]> {
+    return this.http
+      .get<ApiResponse<AdminUser[]>>(`${API_URL}/api/admin/users`)
+      .pipe(map((res) => res.data));
+  }
+
+  updateUser(id: string, patch: AdminUserPatch): Observable<AdminUser> {
+    return this.http
+      .patch<ApiResponse<AdminUser>>(`${API_URL}/api/admin/users/${id}`, patch)
       .pipe(map((res) => res.data));
   }
 }

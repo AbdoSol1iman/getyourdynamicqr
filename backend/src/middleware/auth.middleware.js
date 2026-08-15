@@ -1,7 +1,7 @@
 import { verifyToken } from "../utils/jwt.js";
 import { prisma } from "../prisma.js";
 
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header || !header.startsWith("Bearer ")) {
@@ -12,6 +12,16 @@ export function authenticate(req, res, next) {
 
   try {
     const payload = verifyToken(token);
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { isActive: true },
+    });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid or expired token" });
+    }
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: "Account disabled" });
+    }
     req.user = { userId: payload.userId };
     next();
   } catch (err) {
@@ -33,9 +43,15 @@ export async function requireAdmin(req, res, next) {
     const payload = verifyToken(header.slice("Bearer ".length));
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
-      select: { role: true },
+      select: { role: true, isActive: true },
     });
-    if (!user || user.role !== "ADMIN") {
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid or expired token" });
+    }
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: "Account disabled" });
+    }
+    if (user.role !== "ADMIN") {
       return res.status(403).json({ success: false, message: "Admin access required" });
     }
     req.user = { userId: payload.userId };
