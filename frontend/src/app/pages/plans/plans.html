@@ -80,7 +80,7 @@
 
           <div class="pay-details">
             <div class="qr-box">
-              <app-qr-image [text]="p.payText" [size]="170" />
+              <app-qr-image [src]="p.qrImage ?? null" [text]="p.payText" [size]="170" />
             </div>
             <ul class="pay-list">
               <li>Amount: <strong class="num">EGP {{ p.amountEGP }}</strong></li>

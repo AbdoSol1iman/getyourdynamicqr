@@ -50,6 +50,7 @@ describe("billing & plans", () => {
       assert.equal(typeof payment.account, "string"); // exposed for the pay instructions
       assert.match(payment.payText, /reference DQR-/);
       assert.match(payment.payText, /WePay/);
+      assert.ok(payment.qrImage?.startsWith("data:image/png;base64,")); // shown the same way as dashboard QRs
     });
 
     test("creates a Telda payment with a username account", async () => {

@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { prisma } from "../prisma.js";
 import { PLANS, getPlan, getPlanSummary } from "../config/plans.js";
 import {
@@ -67,6 +68,21 @@ export async function createPayment(userId, planType, methodId) {
     },
   });
 
+  const payText = buildPayQrText({
+    method,
+    amountEGP: payment.amountEGP,
+    reference: payment.reference,
+  });
+
+  // The pay QR encodes the payment instructions (same pattern as dashboard
+  // QRs, which ship a backend-generated image). Best-effort: if generation
+  // fails we still return the payment so the text instructions work.
+  const qrImage = await QRCode.toDataURL(payText);
+  const payImage =
+    typeof qrImage === "string" && qrImage.startsWith("data:image/png;base64,")
+      ? qrImage
+      : null;
+
   return {
     paymentId: payment.id,
     reference: payment.reference,
@@ -75,11 +91,8 @@ export async function createPayment(userId, planType, methodId) {
     planLabel: plan.label,
     method: method.id,
     account: method.account,
-    payText: buildPayQrText({
-      method,
-      amountEGP: payment.amountEGP,
-      reference: payment.reference,
-    }),
+    payText,
+    qrImage: payImage,
   };
 }
 

@@ -34,6 +34,7 @@ export interface Payment {
   method: string;
   account: string;
   payText: string;
+  qrImage: string | null;
 }
 
 export interface ConfirmResult {
