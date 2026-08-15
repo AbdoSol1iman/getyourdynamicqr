@@ -38,7 +38,7 @@ export async function registerUser(email, password) {
     data: { email, passwordHash },
   });
 
-  return { id: user.id, email: user.email, planType: user.planType };
+  return { id: user.id, email: user.email, planType: user.planType, role: user.role };
 }
 
 export async function loginUser(email, password) {
@@ -66,6 +66,6 @@ export async function loginUser(email, password) {
 
   return {
     token,
-    user: { id: user.id, email: user.email, planType: user.planType },
+    user: { id: user.id, email: user.email, planType: user.planType, role: user.role },
   };
 }
